@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>모니터링 대시보드 | Iwell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 이 페이지 전용 -->
+  <link rel="stylesheet" href="monitoring.css" />
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live">
+      <a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>Iwell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+  <!-- sub-banner를 네비로 재활용 (알람 메뉴 제외) -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip active">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+    </div>
+  </div>
+
+  <!-- 메인: 4×3 그리드 -->
+  <main class="grid-4x3">
+    <!-- (좌) 트리 선택: 위치/공정/전력 (1×3) -->
+    <aside class="card card-1x3">
+      <div class="card-header">위치 / 공정 / 전력 트리</div>
+      <div class="card-body">
+        <div class="tree-search">
+          <input type="text" id="treeSearch" placeholder="위치/공정/전력 그룹 검색" />
+          <div class="btnrow">
+            <button class="btn" id="btnExpandAll">펼치기</button>
+            <button class="btn" id="btnCollapseAll">접기</button>
+          </div>
+        </div>
+        <ul class="tree" id="groupTree"><!-- JS 렌더 --></ul>
+      </div>
+    </aside>
+
+    <!-- (우상단+중단) 선택 그룹 요약 (3×2) -->
+    <section class="card card-3x2">
+      <div class="card-header">선택 그룹 요약</div>
+      <div class="card-body">
+        <!-- 상단 3구역 -->
+        <div class="sel-grid">
+          <div class="sel-section">
+            <div class="sel-title">그룹</div>
+            <div class="kpi xl" id="grpName">-</div>
+            <div class="muted" id="grpPath">-</div>
+          </div>
+          <div class="sel-section">
+            <div class="sel-title">상태</div>
+            <div class="row">
+              <span class="pill">대상 설비 <strong id="grpDevices">0</strong>대</span>
+              <span class="pill">통신 <strong id="grpComm">정상</strong></span>
+            </div>
+            <div class="kv">
+              <span class="kv-label">업데이트</span>
+              <span class="kv-value" id="grpUpdated">-</span>
+            </div>
+          </div>
+          <div class="sel-section">
+            <div class="sel-title">지표</div>
+            <div class="row wrap">
+              <div class="kpi xl"><span id="grpKW">-</span> kW</div>
+              <div class="kpi lg"><span id="grpKWH">-</span> kWh(금일)</div>
+            </div>
+            <div class="kv">
+              <span class="kv-label">전일 동시간 대비</span>
+              <span class="kv-value" id="grpDelta">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 하단: 미니 차트 2개 (오늘 vs 전일 / 목표대비) -->
+        <div class="summary-minis">
+          <div class="mini-card">
+            <div class="mini-title">오늘 vs 전일 사용량 (시간대별)</div>
+            <div id="chartCompareMini" class="chart-mini tall"></div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-title">목표 사용량 대비</div>
+            <div id="chartGoalMini" class="chart-mini tall"></div>
+            <div class="row mini-kpis">
+              <span class="muted">목표</span><span class="badge" id="goalTarget">-</span>
+              <span class="muted">현재</span><span class="badge" id="goalActual">-</span>
+              <span class="muted">달성률</span><span class="badge" id="goalRate">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- (하단) 실시간 패턴 (3×1) -->
+    <section class="card card-3x1">
+      <div class="card-header">실시간 패턴 (집계 kW, 최근 10분)</div>
+      <div class="card-body">
+        <div class="chart-mini" id="chartLive"></div>
+        <div class="muted">2초마다 갱신 · 드래그/휠로 확대</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+    (function(){
+      // ===== 시계 =====
+      const clockEl = document.getElementById('datetime');
+      function updateClock(){ if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('ko-KR'); }
+      updateClock(); setInterval(updateClock, 1000);
+
+      // ===== 데모용 임의 데이터 (index 스타일에 맞춰 바로 표시) =====
+      const DEVICES = [
+        { id:'A-P-01', name:'프레스#1',   path:['공장A','라인1','성형'],   pgroup:'동력',  power:820, temp:37, pf:0.93, kwhToday:560 },
+        { id:'A-P-02', name:'프레스#2',   path:['공장A','라인1','성형'],   pgroup:'동력',  power:120, temp:31, pf:0.88, kwhToday:240 },
+        { id:'A-C-01', name:'컴프레서#1', path:['공장A','라인2','압축'],   pgroup:'보조',  power:420, temp:33, pf:0.95, kwhToday:310 },
+        { id:'A-CH-01',name:'칠러#1',    path:['공장A','라인2','냉각'],   pgroup:'보조',  power:260, temp:17, pf:0.96, kwhToday:210 },
+        { id:'B-R-01', name:'로봇암#1',   path:['공장B','조립','피킹'],     pgroup:'동력',  power:650, temp:39, pf:0.90, kwhToday:430 },
+        { id:'B-R-02', name:'로봇암#2',   path:['공장B','조립','피킹'],     pgroup:'동력',  power:180, temp:29, pf:0.92, kwhToday:150 },
+        { id:'B-CV-01', name:'컨베이어#1',path:['공장B','조립','이송'],     pgroup:'보조',  power:180, temp:31, pf:0.92, kwhToday:150 },
+        { id:'B-PA-01', name:'도장부스#1',path:['공장B','도장','부스'],     pgroup:'가열',  power:540, temp:36, pf:0.91, kwhToday:390 },
+        { id:'C-DR-01', name:'건조로#1',  path:['공장C','열처리','건조'],   pgroup:'가열',  power:720, temp:120,pf:0.92, kwhToday:610 },
+        { id:'C-CF-01', name:'집진기#1',  path:['공장C','열처리','집진'],   pgroup:'보조',  power:240, temp:29, pf:0.94, kwhToday:180 },
+      ];
+      const fmt = (n)=> (typeof n==='number') ? n.toLocaleString('ko-KR') : n;
+
+      // ===== 트리 데이터 (위치/공정/전력 루트) =====
+      const ROOTS = {
+        '위치': buildBy(DEVICES, (d)=> d.path[0], (d)=> d.path[1], (d)=> d.path[2]),
+        '공정': buildBy(DEVICES, (d)=> d.path[2], (d)=> d.path[0], (d)=> d.path[1]),
+        '전력': buildBy(DEVICES, (d)=> d.pgroup,  (d)=> d.path[0], (d)=> d.path[1]),
+      };
+      function buildBy(list, L1, L2, L3){
+        const g1 = groupBy(list, L1);
+        const out = {};
+        for (const [k1, arr1] of Object.entries(g1)){
+          const g2 = groupBy(arr1, L2); out[k1] = {};
+          for (const [k2, arr2] of Object.entries(g2)){
+            const g3 = groupBy(arr2, L3); out[k1][k2] = {};
+            for (const [k3, arr3] of Object.entries(g3)){
+              out[k1][k2][k3] = arr3; // leaf: devices[]
+            }
+          }
+        }
+        return out;
+      }
+      function groupBy(arr, fn){ return arr.reduce((m,x)=>((m[fn(x)] ??= []).push(x), m), {}); }
+
+      // ===== 트리 렌더 =====
+      const treeRoot = document.getElementById('groupTree');
+      const qInput   = document.getElementById('treeSearch');
+      document.getElementById('btnExpandAll').addEventListener('click', ()=>toggleAll(true));
+      document.getElementById('btnCollapseAll').addEventListener('click', ()=>toggleAll(false));
+      qInput.addEventListener('input', (e)=> filterTree(e.target.value.trim()));
+
+      function renderTree(){
+        treeRoot.innerHTML = '';
+        for (const [rootName, lvl1] of Object.entries(ROOTS)){
+          const rootLi = nodeLi(rootName, true); treeRoot.appendChild(rootLi);
+          const ul1 = document.createElement('ul'); ul1.className='subtree'; rootLi.appendChild(ul1);
+
+          for (const [k1, lvl2] of Object.entries(lvl1)){
+            const li1 = nodeLi(k1); ul1.appendChild(li1);
+            const ul2 = document.createElement('ul'); ul2.className='subtree'; li1.appendChild(ul2);
+
+            for (const [k2, lvl3] of Object.entries(lvl2)){
+              const li2 = nodeLi(k2); ul2.appendChild(li2);
+              const ul3 = document.createElement('ul'); ul3.className='subtree'; li2.appendChild(ul3);
+
+              for (const [k3, devs] of Object.entries(lvl3)){
+                const li3 = nodeLi(k3, false, ()=> selectGroup({ root: rootName, path:[k1,k2,k3], devs }));
+                ul3.appendChild(li3);
+              }
+            }
+          }
+        }
+      }
+      function nodeLi(label, isRoot=false, onClick=null){
+        const li  = document.createElement('li');
+        const row = document.createElement('div'); row.className='node'; li.appendChild(row);
+        const tg  = document.createElement('span'); tg.className='toggle'; tg.textContent='−'; row.appendChild(tg);
+        const lb  = document.createElement('span'); lb.className='label'; lb.textContent=label; row.appendChild(lb);
+        if (onClick){ row.addEventListener('click',(e)=>{ e.stopPropagation(); onClick(); highlight(row); }); }
+        else {
+          row.addEventListener('click',(e)=>{ e.stopPropagation(); const st=li.querySelector(':scope > .subtree'); if(!st) return; const open=st.style.display==='block'||st.style.display===''; st.style.display=open?'none':'block'; tg.textContent=open?'+':'−'; });
+        }
+        return li;
+      }
+      function toggleAll(open){
+        treeRoot.querySelectorAll('.subtree').forEach(s=> s.style.display = open?'block':'none');
+        treeRoot.querySelectorAll('.node .toggle').forEach(t=>{ if(t.textContent==='+'||t.textContent==='−') t.textContent = open?'−':'+'; });
+      }
+      function filterTree(q){
+        const labels = treeRoot.querySelectorAll('.node .label');
+        labels.forEach(l=>{
+          const li = l.closest('li'); li.style.display = q ? (l.textContent.includes(q) ? '' : 'none') : '';
+        });
+      }
+      function highlight(node){ treeRoot.querySelectorAll('.node').forEach(n=>n.classList.remove('selected')); node.classList.add('selected'); }
+      renderTree(); toggleAll(true);
+
+      // ===== 집계/선택 상태 =====
+      let sel = null;              // { root, path:[a,b,c], devs:[...] }
+      let liveSeries = [];         // [[t, kW], ...]
+      let todayHours = new Array(24).fill(0);
+      let ydayHours  = new Array(24).fill(0);
+      let goalTarget = 12000;      // kWh (임의)
+      let goalActual = 0;
+
+      // ===== 차트 준비 =====
+      const chartLive    = echarts.init(document.getElementById('chartLive'));
+      const chartCompareMini = echarts.init(document.getElementById('chartCompareMini'));
+      const chartGoalMini    = echarts.init(document.getElementById('chartGoalMini'));
+
+      function lineOption(data){
+        return {
+          animation:false,
+          tooltip:{ trigger:'axis', valueFormatter:(v)=> fmt(v)+' kW' },
+          grid:{ left:48, right:12, top:8, bottom:48 },
+          xAxis:{
+            type:'time',
+            splitNumber:6,
+            axisLabel:{ hideOverlap:true, formatter:(v)=> new Date(v).toLocaleTimeString('ko-KR').replace(/:\d{2}$/,'') }
+          },
+          yAxis:{ type:'value', axisLabel:{ formatter:(v)=> fmt(v) } },
+          dataZoom:[ { type:'slider', height:14, bottom:8, start:60, end:100 }, { type:'inside' } ],
+          series:[ { type:'line', data, showSymbol:false, smooth:0.25, lineStyle:{ width:2 } } ]
+        };
+      }
+      function barOptionMini(today, yday){
+        const hours = Array.from({length:24}, (_,i)=> i+'시');
+        return {
+          animation:false,
+          tooltip:{ trigger:'axis' },
+          legend:{ data:['오늘','전일'] },
+          grid:{ left:40, right:8, top:24, bottom:28 },
+          xAxis:{ type:'category', data: hours, axisLabel:{ interval: 2 } },
+          yAxis:{ type:'value', axisLabel:{ formatter:(v)=> fmt(v) } },
+          series:[
+            { name:'오늘', type:'bar', data: today, barGap: 0, barMaxWidth: 12 },
+            { name:'전일', type:'bar', data: yday,  barMaxWidth: 12 }
+          ]
+        };
+      }
+      function gaugeOptionMini(ratePct){
+        return {
+          series: [{
+            type: 'gauge',
+            startAngle: 200,
+            endAngle: -20,
+            min: 0, max: 100,
+            progress: { show: true, width: 10 },
+            axisLine: { lineStyle: { width: 10 } },
+            axisTick: { show:false }, splitLine:{ show:false },
+            axisLabel:{ show:false },
+            pointer: { show: true, length: '70%', width: 4 },
+            detail: { formatter: '{value}%', fontSize: 18, offsetCenter: [0, '60%'] },
+            data: [{ value: Math.round(ratePct), name: '달성률' }]
+          }]
+        };
+      }
+
+      // ===== 선택 시 집계/렌더 =====
+      function selectGroup(group){
+        sel = group;
+
+        // KPI 텍스트 (데모 즉시 표시)
+        document.getElementById('grpName').textContent = group.path.join(' / ');
+        document.getElementById('grpPath').textContent = group.root + ' 기반';
+        document.getElementById('grpDevices').textContent = group.devs.length;
+        document.getElementById('grpUpdated').textContent = new Date().toLocaleTimeString('ko-KR');
+
+        const kw   = Math.round(group.devs.reduce((s,d)=> s + d.power, 0));
+        const kwh  = Math.round(group.devs.reduce((s,d)=> s + d.kwhToday, 0));
+        const pf   = (group.devs.reduce((s,d)=> s + d.pf, 0) / Math.max(1, group.devs.length)).toFixed(2);
+
+        document.getElementById('grpKW').textContent   = fmt(kw);
+        document.getElementById('grpKWH').textContent  = fmt(kwh);
+        document.getElementById('grpDelta').textContent = (kw >= kwh/24 ? '+3.1%' : '-2.8%'); // 데모용 임의 표기
+        document.getElementById('grpComm').textContent = '정상';
+
+        // 실시간 시드
+        const now = Date.now(); liveSeries = [];
+        for (let i=299;i>=0;i--){
+          const t = now - i*2000;
+          const base = kw + (Math.sin(i/10)*10) + (Math.random()*8-4);
+          liveSeries.push([t, Math.max(0, Math.round(base))]);
+        }
+        chartLive.setOption(lineOption(liveSeries));
+
+        // 비교 차트 시드(전일/오늘)
+        ydayHours = Array.from({length:24}, (_,h)=> Math.max(0, Math.round((kwh/24) * (0.8 + Math.sin((h+3)/4)*0.1 + (Math.random()*0.2-0.1)))));
+        const curHour = new Date().getHours();
+        todayHours = ydayHours.map((v,h)=> h <= curHour ? Math.max(0, Math.round(v*(0.95 + Math.random()*0.1))) : 0);
+        chartCompareMini.setOption(barOptionMini(todayHours, ydayHours));
+
+        // 목표 대비 (데모 목표)
+        goalTarget = Math.max(6000, Math.round(kwh*1.05));
+        goalActual = todayHours.reduce((s,v)=> s+v, 0);
+        updateGoalMini();
+      }
+
+      function updateGoalMini(){
+        const rate = Math.max(0, Math.min(100, Math.round((goalActual/goalTarget)*100)));
+        chartGoalMini.setOption(gaugeOptionMini(rate));
+        document.getElementById('goalTarget').textContent = fmt(goalTarget) + ' kWh';
+        document.getElementById('goalActual').textContent = fmt(Math.round(goalActual)) + ' kWh';
+        document.getElementById('goalRate').textContent   = rate + '%';
+      }
+
+      // ===== 초기 선택 (데모 기본 그룹) =====
+      const defaultGroup = { root:'위치', path:['공장A','라인1','성형'], devs: DEVICES.filter(d=> d.path[0]==='공장A' && d.path[1]==='라인1' && d.path[2]==='성형') };
+      selectGroup(defaultGroup);
+
+      // ===== 실시간 갱신(2초) — 데모 드리프트 =====
+      setInterval(()=>{
+        if (!sel) return;
+        // 집계 kW 임의 드리프트
+        const curKW = Math.max(0, liveSeries[liveSeries.length-1][1] + Math.round(Math.random()*10 - 5));
+        const t = Date.now();
+        liveSeries.push([t, curKW]); if (liveSeries.length>600) liveSeries.splice(0, liveSeries.length-600);
+        chartLive.setOption({ series:[{ data: liveSeries }] });
+
+        // 금일 kWh 누적 갱신(근사)
+        goalActual += Math.max(0, curKW/1800); // 2초마다 kWh 증가
+        const hour = new Date().getHours();
+        todayHours[hour] += Math.max(0, curKW/1800);
+        chartCompareMini.setOption({ series:[{ data: todayHours }, { data: ydayHours }] });
+
+        // KPI 갱신
+        document.getElementById('grpKW').textContent = fmt(curKW);
+        document.getElementById('grpKWH').textContent = fmt(Math.round(todayHours.reduce((s,v)=> s+v, 0)));
+        document.getElementById('grpUpdated').textContent = new Date().toLocaleTimeString('ko-KR');
+
+        // 목표 게이지
+        updateGoalMini();
+      }, 2000);
+
+    })();
+  </script>
+  
+   <script src="script.js"></script>
+</body>
+</html>

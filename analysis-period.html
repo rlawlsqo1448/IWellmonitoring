@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>기간별 분석 | Iwell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 전용 -->
+  <link rel="stylesheet" href="analysis-period.css" />
+  <!-- 차트 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live"><a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>Iwell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+  <!-- 네비(필 버튼) -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip active">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+    </div>
+  </div>
+
+  <!-- 메인: 4×3 -->
+  <main class="grid-4x3">
+    <!-- (좌) 트리 & 조건 (1×3) -->
+    <aside class="card card-1x3">
+      <div class="card-header">그룹/계측기 선택</div>
+      <div class="card-body">
+        <div class="toolbox">
+          <div class="input-row">
+            <label>기간</label>
+            <input type="date" id="startDate">
+            <span>~</span>
+            <input type="date" id="endDate">
+          </div>
+          <div class="input-row">
+            <label>간격</label>
+            <div class="chips" id="intervalChips">
+              <button data-v="15m" class="chip">15분</button>
+              <button data-v="1h" class="chip active">1시간</button>
+              <button data-v="1d" class="chip">1일</button>
+              <button data-v="1mo" class="chip">1달</button>
+              <button data-v="1y" class="chip">연간</button>
+            </div>
+          </div>
+          <div class="input-row">
+            <label>지표</label>
+            <div class="chips" id="metricChips">
+              <button data-v="both" class="chip active">kWh + kW</button>
+              <button data-v="kwh" class="chip">kWh만</button>
+              <button data-v="kw" class="chip">kW만</button>
+            </div>
+          </div>
+          <div class="btnrow">
+            <button class="btn primary" id="btnQuery">조회</button>
+            <button class="btn" id="btnCsv">CSV 다운로드</button>
+          </div>
+        </div>
+
+        <div class="tree-search">
+          <input type="text" id="treeSearch" placeholder="그룹/계측기 검색" />
+          <div class="btnrow">
+            <button class="btn" id="btnExpandAll">펼치기</button>
+            <button class="btn" id="btnCollapseAll">접기</button>
+          </div>
+        </div>
+        <ul class="tree" id="groupTree"><!-- JS 렌더 --></ul>
+
+        <div class="hint muted small">트리에서 항목을 클릭하면 해당 그룹/계측기를 합산하여 그래프·표에 표시합니다.</div>
+      </div>
+    </aside>
+
+    <!-- (우상단) 요약 + 그래프 (3×2) -->
+    <section class="card card-3x2">
+      <div class="card-header">기간별 추이</div>
+      <div class="card-body">
+        <div class="summary-row">
+          <span class="pill">선택: <strong id="selLabel">-</strong></span>
+          <span class="pill">구간 수: <strong id="ptCount">-</strong></span>
+          <span class="pill">합계 kWh: <strong id="sumKwh">-</strong></span>
+          <span class="pill">평균 kW: <strong id="avgKw">-</strong></span>
+          <span class="pill">최대 kW: <strong id="maxKw">-</strong></span>
+        </div>
+        <div id="chart" class="chart-main"></div>
+      </div>
+    </section>
+
+    <!-- (우하단) 데이터 표 (3×1) -->
+    <section class="card card-3x1">
+      <div class="card-header">데이터 표</div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table class="table" id="dataTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>구간 시작</th>
+                <th>구간 끝</th>
+                <th>kWh</th>
+                <th>평균 kW</th>
+              </tr>
+            </thead>
+            <tbody><!-- JS 렌더 --></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+    (function(){
+      // ===== 시계 =====
+      const clockEl = document.getElementById('datetime');
+      const updClock = ()=> clockEl && (clockEl.textContent = new Date().toLocaleTimeString('ko-KR'));
+      updClock(); setInterval(updClock, 1000);
+
+      // ===== 데모 장치 (monitoring과 동일 톤) =====
+      const DEVICES = [
+        { id:'A-P-01', name:'프레스#1',   path:['공장A','라인1','성형'],   pgroup:'동력',  power:820, temp:37, pf:0.93 },
+        { id:'A-P-02', name:'프레스#2',   path:['공장A','라인1','성형'],   pgroup:'동력',  power:120, temp:31, pf:0.88 },
+        { id:'A-C-01', name:'컴프레서#1', path:['공장A','라인2','압축'],   pgroup:'보조',  power:420, temp:33, pf:0.95 },
+        { id:'A-CH-01',name:'칠러#1',    path:['공장A','라인2','냉각'],   pgroup:'보조',  power:260, temp:17, pf:0.96 },
+        { id:'B-R-01', name:'로봇암#1',   path:['공장B','조립','피킹'],     pgroup:'동력',  power:650, temp:39, pf:0.90 },
+        { id:'B-R-02', name:'로봇암#2',   path:['공장B','조립','피킹'],     pgroup:'동력',  power:180, temp:29, pf:0.92 },
+        { id:'B-CV-01',name:'컨베이어#1', path:['공장B','조립','이송'],     pgroup:'보조',  power:180, temp:31, pf:0.92 },
+        { id:'B-PA-01',name:'도장부스#1', path:['공장B','도장','부스'],     pgroup:'가열',  power:540, temp:36, pf:0.91 },
+        { id:'C-DR-01',name:'건조로#1',  path:['공장C','열처리','건조'],   pgroup:'가열',  power:720, temp:120,pf:0.92 },
+        { id:'C-CF-01',name:'집진기#1',  path:['공장C','열처리','집진'],   pgroup:'보조',  power:240, temp:29, pf:0.94 },
+      ];
+      const ROOTS = {
+        '위치': buildBy(DEVICES, d=>d.path[0], d=>d.path[1], d=>d.path[2]),
+        '공정': buildBy(DEVICES, d=>d.path[2], d=>d.path[0], d=>d.path[1]),
+        '전력': buildBy(DEVICES, d=>d.pgroup,  d=>d.path[0], d=>d.path[1]),
+      };
+      function groupBy(arr, fn){ return arr.reduce((m,x)=> ((m[fn(x)]??=[]).push(x), m), {}); }
+      function buildBy(list,L1,L2,L3){
+        const g1 = groupBy(list,L1); const out={};
+        for(const[k1,a1] of Object.entries(g1)){ const g2=groupBy(a1,L2); out[k1]={};
+          for(const[k2,a2] of Object.entries(g2)){ const g3=groupBy(a2,L3); out[k1][k2]={};
+            for(const[k3,a3] of Object.entries(g3)){ out[k1][k2][k3]=a3; }
+          }
+        }
+        return out;
+      }
+
+      // ===== 트리 렌더 =====
+      const treeRoot = document.getElementById('groupTree');
+      const qInput   = document.getElementById('treeSearch');
+      document.getElementById('btnExpandAll').addEventListener('click', ()=>toggleAll(true));
+      document.getElementById('btnCollapseAll').addEventListener('click', ()=>toggleAll(false));
+      qInput.addEventListener('input', (e)=> filterTree(e.target.value.trim()));
+      function nodeLi(label, onClick=null){
+        const li=document.createElement('li');
+        const row=document.createElement('div'); row.className='node'; li.appendChild(row);
+        const tg=document.createElement('span'); tg.className='toggle'; tg.textContent='−'; row.appendChild(tg);
+        const lb=document.createElement('span'); lb.className='label'; lb.textContent=label; row.appendChild(lb);
+        if(onClick){ row.addEventListener('click',(e)=>{e.stopPropagation(); onClick(); highlight(row);}); }
+        else { row.addEventListener('click',(e)=>{ e.stopPropagation(); const st=li.querySelector(':scope>.subtree'); if(!st) return; const open=st.style.display===''||st.style.display==='block'; st.style.display=open?'none':'block'; tg.textContent=open?'+':'−'; }); }
+        return li;
+      }
+      function renderTree(){
+        treeRoot.innerHTML='';
+        for(const [rootName,lvl1] of Object.entries(ROOTS)){
+          const rt=nodeLi(rootName); treeRoot.appendChild(rt);
+          const ul1=document.createElement('ul'); ul1.className='subtree'; rt.appendChild(ul1);
+          for(const [k1,lvl2] of Object.entries(lvl1)){
+            const li1=nodeLi(k1); ul1.appendChild(li1);
+            const ul2=document.createElement('ul'); ul2.className='subtree'; li1.appendChild(ul2);
+            for(const [k2,lvl3] of Object.entries(lvl2)){
+              const li2=nodeLi(k2); ul2.appendChild(li2);
+              const ul3=document.createElement('ul'); ul3.className='subtree'; li2.appendChild(ul3);
+              for(const [k3,devs] of Object.entries(lvl3)){
+                const li3=nodeLi(k3, ()=> selectGroup({root:rootName, path:[k1,k2,k3], devs}));
+                ul3.appendChild(li3);
+              }
+            }
+          }
+        }
+      }
+      function toggleAll(open){
+        treeRoot.querySelectorAll('.subtree').forEach(s=> s.style.display=open?'block':'none');
+        treeRoot.querySelectorAll('.node .toggle').forEach(t=> t.textContent=open?'−':'+');
+      }
+      function filterTree(q){
+        const labels = treeRoot.querySelectorAll('.node .label');
+        labels.forEach(l=>{ const li=l.closest('li'); li.style.display = q ? (l.textContent.includes(q)?'':'none') : ''; });
+      }
+      function highlight(node){ treeRoot.querySelectorAll('.node').forEach(n=>n.classList.remove('selected')); node.classList.add('selected'); }
+      renderTree(); toggleAll(true);
+
+      // ===== UI 컨트롤 =====
+      const chips = (wrapId)=> Array.from(document.querySelectorAll('#'+wrapId+' .chip'));
+      chips('intervalChips').forEach(btn=> btn.addEventListener('click',()=>{ chips('intervalChips').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); syncDatesWithInterval(btn.dataset.v); }));
+      chips('metricChips').forEach(btn=> btn.addEventListener('click',()=>{ chips('metricChips').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); draw(); }));
+
+      const startEl=document.getElementById('startDate');
+      const endEl=document.getElementById('endDate');
+      document.getElementById('btnQuery').addEventListener('click', draw);
+      document.getElementById('btnCsv').addEventListener('click', downloadCsv);
+
+      // 날짜 기본: 최근 7일(일간)
+      function fmtDateInput(d){ const z=n=> String(n).padStart(2,'0'); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+      const today=new Date(); const d7=new Date(today); d7.setDate(today.getDate()-7);
+      startEl.value = fmtDateInput(d7);
+      endEl.value   = fmtDateInput(today);
+
+      // 간격 변경 시 날짜 범위 스냅
+      function syncDatesWithInterval(iv){
+        const end=new Date(); let start=new Date(end);
+        if(iv==='15m'){ start.setDate(end.getDate()-1); }       // 1일
+        else if(iv==='1h'){ start.setDate(end.getDate()-7); }   // 7일
+        else if(iv==='1d'){ start.setMonth(end.getMonth()-1); } // 1개월
+        else if(iv==='1mo'){ start.setFullYear(end.getFullYear()-1); } // 1년
+        else if(iv==='1y'){ start.setFullYear(end.getFullYear()-4); }  // 5년
+        startEl.value=fmtDateInput(start); endEl.value=fmtDateInput(end);
+        draw();
+      }
+
+      // ===== 차트 =====
+      const chart = echarts.init(document.getElementById('chart'));
+      function optionXY(labels, kwh, kw, showKwh, showKw){
+        return {
+          animation:false,
+          tooltip:{ trigger:'axis', valueFormatter:(v)=> v.toLocaleString('ko-KR') },
+          legend:{ data:[ ...(showKwh?['kWh']:[]), ...(showKw?['kW']:[]) ] },
+          grid:{ left:56, right:40, top:28, bottom:56 },
+          xAxis:{ type:'category', data: labels, axisLabel:{ hideOverlap:true, rotate:0, interval:'auto' } },
+          yAxis:[
+            { type:'value', name: showKwh?'kWh':'', alignTicks:true, axisLabel:{ formatter:(v)=> v.toLocaleString('ko-KR') } },
+            { type:'value', name: showKw ?'kW' :'', alignTicks:true, axisLabel:{ formatter:(v)=> v.toLocaleString('ko-KR') } }
+          ],
+          dataZoom:[ { type:'slider', height:14, bottom:8, start:0, end:100 }, { type:'inside' } ],
+          series: [
+            ...(showKwh?[{ name:'kWh', type:'bar', data:kwh, yAxisIndex:0, barMaxWidth:22 }]:[]),
+            ...(showKw ?[{ name:'kW',  type:'line', data:kw,  yAxisIndex:1, showSymbol:false, smooth:0.25, lineStyle:{width:2} }]:[])
+          ]
+        };
+      }
+
+      // ===== 상태 =====
+      let sel = null;     // {root, path, devs}
+      let curSeries = []; // [{t0,t1,label,kwh,kwAvg},...]
+      function selectGroup(group){
+        sel = group;
+        document.getElementById('selLabel').textContent = group.root + ' / ' + group.path.join(' / ');
+        draw();
+      }
+      // 초기 선택
+      selectGroup({ root:'위치', path:['공장A','라인1','성형'], devs: DEVICES.filter(d=> d.path[0]==='공장A' && d.path[1]==='라인1' && d.path[2]==='성형') });
+
+      // ===== 데이터 생성(데모) =====
+      function draw(){
+        if(!sel) return;
+        const iv = document.querySelector('#intervalChips .chip.active').dataset.v;
+        const metric = document.querySelector('#metricChips .chip.active').dataset.v;
+        const s = new Date(startEl.value+'T00:00:00'); const e = new Date(endEl.value+'T23:59:59');
+        if (s>e){ toast('기간을 다시 선택해주세요.'); return; }
+
+        // 집계 기준(kW 베이스)
+        const baseKW = Math.max(1, Math.round(sel.devs.reduce((sum,d)=> sum + d.power, 0) / 10)); // 덜 과격하게
+        curSeries = buildSeries(iv, s, e, baseKW);
+
+        // 요약
+        const sumKwh = Math.round(curSeries.reduce((s,x)=> s + x.kwh, 0));
+        const avgKw  = (curSeries.reduce((s,x)=> s + x.kwAvg, 0) / Math.max(1, curSeries.length)).toFixed(1);
+        const maxKw  = Math.round(Math.max(...curSeries.map(x=> x.kwAvg)));
+        document.getElementById('ptCount').textContent = curSeries.length.toLocaleString('ko-KR');
+        document.getElementById('sumKwh').textContent  = sumKwh.toLocaleString('ko-KR');
+        document.getElementById('avgKw').textContent   = avgKw.toString();
+        document.getElementById('maxKw').textContent   = maxKw.toLocaleString('ko-KR');
+
+        // 차트 데이터
+        const labels = curSeries.map(x=> x.label);
+        const arrKwh = curSeries.map(x=> +(x.kwh.toFixed(2)));
+        const arrKw  = curSeries.map(x=> +(+x.kwAvg.toFixed(2)));
+        const showKwh = (metric==='both'||metric==='kwh');
+        const showKw  = (metric==='both'||metric==='kw');
+        chart.setOption(optionXY(labels, arrKwh, arrKw, showKwh, showKw));
+
+        // 표 렌더
+        renderTable(curSeries);
+      }
+
+      function buildSeries(iv, s, e, base){
+        const out=[]; let t0=new Date(s);
+        while (t0<=e){
+          const t1 = stepEnd(t0, iv);
+          if (t1<s) { t0 = t1; continue; }
+          if (t0>e) break;
+          const {kwAvg, kwh} = synth(base, iv, t0);
+          out.push({ t0:new Date(t0), t1:new Date(Math.min(t1,e)), label: labelOf(iv, t0), kwAvg, kwh });
+          t0 = t1;
+        }
+        return out;
+      }
+      function stepEnd(t, iv){
+        const d=new Date(t);
+        if(iv==='15m'){ d.setMinutes(d.getMinutes()+15,0,0); }
+        else if(iv==='1h'){ d.setHours(d.getHours()+1,0,0,0); }
+        else if(iv==='1d'){ d.setDate(d.getDate()+1); d.setHours(0,0,0,0); }
+        else if(iv==='1mo'){ d.setMonth(d.getMonth()+1,1); d.setHours(0,0,0,0); }
+        else if(iv==='1y'){ d.setFullYear(d.getFullYear()+1,0,1); d.setHours(0,0,0,0); }
+        return d;
+      }
+      function labelOf(iv, d){
+        const z=n=> String(n).padStart(2,'0');
+        const Y=d.getFullYear(), M=z(d.getMonth()+1), D=z(d.getDate()), h=z(d.getHours()), m=z(d.getMinutes());
+        if(iv==='15m') return `${Y}-${M}-${D} ${h}:${m}`;
+        if(iv==='1h')  return `${Y}-${M}-${D} ${h}:00`;
+        if(iv==='1d')  return `${Y}-${M}-${D}`;
+        if(iv==='1mo') return `${Y}-${M}`;
+        if(iv==='1y')  return `${Y}`;
+        return d.toISOString();
+        }
+      // 합성기: 간단한 일중 패턴 + 노이즈
+      function synth(base, iv, t){
+        const hour=t.getHours();
+        const diurnal = 0.6 + 0.6*Math.sin((hour-6)/24*2*Math.PI); // 낮에 높고 밤에 낮음
+        const rnd = (Math.random()-0.5)*0.2;
+        const kwAvgRaw = Math.max(0.2, base * (diurnal + rnd));
+        const hours = (iv==='15m')? (15/60) : (iv==='1h')? 1 : (iv==='1d')? 24 : (iv==='1mo')? 24*30 : (iv==='1y')? 24*365 : 1;
+        const kwh = kwAvgRaw * hours;
+        return { kwAvg: kwAvgRaw, kwh };
+      }
+
+      // ===== 표 & CSV =====
+      function renderTable(rows){
+        const tb=document.querySelector('#dataTable tbody'); tb.innerHTML='';
+        rows.forEach((r,i)=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML = `
+            <td>${i+1}</td>
+            <td>${r.t0.toLocaleString('ko-KR')}</td>
+            <td>${r.t1.toLocaleString('ko-KR')}</td>
+            <td>${r.kwh.toFixed(2)}</td>
+            <td>${r.kwAvg.toFixed(2)}</td>
+          `;
+          tb.appendChild(tr);
+        });
+      }
+      function downloadCsv(){
+        if(!curSeries.length){ toast('다운로드할 데이터가 없습니다. 먼저 조회하세요.'); return; }
+        const header = ['index','start','end','kWh','avg_kW'];
+        const lines = [header.join(',')];
+        curSeries.forEach((r,i)=>{
+          lines.push([i+1, r.t0.toISOString(), r.t1.toISOString(), r.kwh.toFixed(3), r.kwAvg.toFixed(3)].join(','));
+        });
+        const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+        a.download = 'period-analysis.csv'; a.click(); URL.revokeObjectURL(a.href);
+      }
+
+      // ===== 레이아웃 높이 맞춤 =====
+      function fitMainHeight(){
+        const main = document.querySelector('main.grid-4x3');
+        const header = document.querySelector('header');
+        const nav = document.querySelector('.sub-banner.nav-banner');
+        if (!main) return;
+        const h = window.innerHeight - (header?header.offsetHeight:0) - (nav?nav.offsetHeight:0);
+        main.style.height = h + 'px';
+      }
+      window.addEventListener('load', fitMainHeight);
+      window.addEventListener('resize', fitMainHeight);
+
+      // 초기 그리기
+      draw();
+
+      // 토스트
+      function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1200); }
+    })();
+  </script>
+  
+   <script src="script.js"></script>
+</body>
+</html>

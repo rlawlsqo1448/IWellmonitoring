@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>연결 현황(Topology) | IWell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 전용 -->
+  <link rel="stylesheet" href="monitoring.css" />
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="logo">
+      IWell Dashboard
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live">
+      <!-- settings: 클릭 시 setting.html -->
+      <a href="settings.html" aria-label="설정으로 이동">
+        <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" class="icon" alt="settings">
+      </a>
+    </div>
+  </header>
+
+  <!-- Drawer Menu (공통) -->
+  <div class="drawer-overlay" id="drawerOv"></div>
+  <nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+    <div class="drawer-header">
+      <div class="brand">
+        <img src="assets/icons/limeLogo.png" alt="logo" class="logo-img" style="height:24px">
+        <span>IWell 메뉴</span>
+      </div>
+      <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+    </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-meter.html"     data-page="analysis-meter.html">계측기 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+  </nav>
+
+  <!-- 네비(필 버튼) -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip active">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-meter.html" class="nav-chip">계측기 분석</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+    </div>
+  </div>
+
+  <!-- 메인: 정확히 3×4 영역만 사용 -->
+  <main class="grid-4x3" id="gridMain">
+    <section class="card card-full">
+      <div class="card-header">연결 현황</div>
+      <div class="card-body">
+        <div class="legend">
+          <span class="swatch link-ok"></span> 통신 정상
+          <span class="swatch link-fault"></span> 통신 이상
+          <span class="sep">|</span>
+          <span class="pill on">ON</span>
+          <span class="pill off">OFF</span>
+        </div>
+        <div class="topology-wrap">
+          <svg id="topologySvg" role="img" aria-label="설비 연결 현황"></svg>
+          <div id="topoTip" class="topo-tip" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 공통 스크립트 -->
+  <script src="script.js"></script>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+  (function(){
+    // 시계
+    const clockEl = document.getElementById('datetime');
+    const tickClock = ()=> clockEl && (clockEl.textContent = new Date().toLocaleTimeString('ko-KR'));
+    tickClock(); setInterval(tickClock, 1000);
+
+    // ====== 높이(정확히 3×4 영역) 계산 ======
+    function fitMainHeight(){
+      const main   = document.getElementById('gridMain');
+      const header = document.querySelector('header');
+      const nav    = document.querySelector('.sub-banner.nav-banner');
+      const h = window.innerHeight - (header?header.offsetHeight:0) - (nav?nav.offsetHeight:0);
+      main.style.height = h + 'px';
+    }
+    window.addEventListener('load', fitMainHeight);
+    window.addEventListener('resize', fitMainHeight);
+
+    // ------ 데이터(데모) ------
+    const EQUIPS = [
+      '사출기#1','사출기#2','사출기#3','사출기#4',
+      '공기압축기#1','공기압축기#2','칠러#1','냉각탑#1',
+      '프레스#1','로봇암#1','컨베이어#1','집진기#1'
+    ];
+    const GWS = ['GW-01','GW-02','GW-03','GW-04'];
+    const METERS = Array.from({length:12}, (_,i)=> `M-${String(i+1).padStart(2,'0')}`);
+
+    const GW_MAP = {};
+    GWS.forEach((gw, gi)=>{ GW_MAP[gw] = []; for(let k=0;k<3;k++){ GW_MAP[gw].push(gi*3 + k);} });
+
+    const nodeState = {};
+    nodeState['SRV']='on';
+    GWS.forEach(gw=> nodeState[gw]='on');
+    METERS.forEach(m=> nodeState[m]='on');
+    EQUIPS.forEach((_,i)=> nodeState['E-'+(i+1)]='on');
+    ['E-5','E-11'].forEach(id=> nodeState[id]='off'); // 데모
+
+    const linkState = [];
+    GWS.forEach(gw=>{
+      linkState.push({ from:'SRV', to:gw, state:'ok' });
+      GW_MAP[gw].forEach(idx=>{
+        const m = METERS[idx], e='E-'+(idx+1);
+        linkState.push({ from:gw, to:m, state: Math.random()<0.15?'fault':'ok' });
+        linkState.push({ from:m, to:e, state: Math.random()<0.15?'fault':'ok' });
+      });
+    });
+
+    // ------ 레이아웃 ------
+    const svg = document.getElementById('topologySvg');
+    const tip = document.getElementById('topoTip');
+    const PADDING = { l:80, r:80, t:30, b:30 };
+
+    function layout(){
+      const wrap = svg.parentElement.getBoundingClientRect();
+      const W = Math.max(800, wrap.width);
+      const H = Math.max(520, wrap.height);
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      const colX = [
+        PADDING.l,
+        PADDING.l + (W-PADDING.l-PADDING.r)*0.25,
+        PADDING.l + (W-PADDING.l-PADDING.r)*0.50,
+        PADDING.l + (W-PADDING.l-PADDING.r)*0.80
+      ];
+
+      const gap = (H - PADDING.t - PADDING.b) / (EQUIPS.length - 1);
+      const yEquip = EQUIPS.map((_,i)=> PADDING.t + i*gap);
+      const yMeter = METERS.map((_,i)=> yEquip[i]);
+      const yGw = GWS.map(gw=>{
+        const list = GW_MAP[gw];
+        return list.reduce((s,i)=> s + yMeter[i], 0) / list.length;
+      });
+      const ySrv = (H/2);
+
+      const nodes = {};
+      function nodeGroup(x,y,type,label,id,state){
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('transform', `translate(${x},${y})`);
+        g.setAttribute('class', `node ${type} ${state}`);
+
+        const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        bg.setAttribute('x', -40); bg.setAttribute('y', -18);
+        bg.setAttribute('rx', type==='meter'? 18 : 8);
+        bg.setAttribute('width', 80); bg.setAttribute('height', 36);
+        bg.setAttribute('class', 'node-bg');
+        g.appendChild(bg);
+
+        // icon
+        if (type==='server'){ const r1=rect(-28,-10,56,6), r2=rect(-28,2,56,6); [r1,r2].forEach(el=>{el.setAttribute('class','icon-stroke'); g.appendChild(el);}); }
+        if (type==='gw'){ const p=path('M-26,-10 L0,-16 L26,-10 L26,10 L0,16 L-26,10 Z'); p.setAttribute('class','icon-stroke'); g.appendChild(p); }
+        if (type==='meter'){ const c=circle(0,0,10); c.setAttribute('class','icon-stroke'); g.appendChild(c); const n=line(-6,0,6,0); n.setAttribute('class','icon-stroke'); g.appendChild(n); }
+        if (type==='equip'){ const r=rect(-28,-12,56,24); r.setAttribute('class','icon-stroke'); g.appendChild(r); const g1=gear(-10,0,5), g2=gear(10,0,5); [g1,g2].forEach(el=>{el.setAttribute('class','icon-stroke'); g.appendChild(el);}); }
+
+        // 텍스트 라벨(요청: 유지) — 상태까지 짧게
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('class','node-text');
+        text.setAttribute('x', type==='equip' ? -46 : 46);
+        text.setAttribute('y', 5);
+        text.setAttribute('text-anchor', type==='equip' ? 'end' : 'start');
+        text.textContent = `${label} · ${state.toUpperCase()}`;
+        g.appendChild(text);
+
+        // 툴팁
+        const kind = {server:'서버', gw:'게이트웨이', meter:'계측기', equip:'설비'}[type];
+        g.dataset.tip = `${kind}: ${label}\n상태: ${state==='on'?'ON':'OFF'}`;
+        attachTip(g);
+
+        return g;
+      }
+
+      function drawServer(){ const x=colX[0], y=ySrv; nodes['SRV']={x,y}; svg.appendChild(nodeGroup(x,y,'server','서버','SRV',nodeState['SRV'])); }
+      function drawGateways(){ GWS.forEach((gw,i)=>{ const x=colX[1], y=yGw[i]; nodes[gw]={x,y}; svg.appendChild(nodeGroup(x,y,'gw',gw,gw,nodeState[gw])); }); }
+      function drawMeters(){ METERS.forEach((m,i)=>{ const x=colX[2], y=yMeter[i]; nodes[m]={x,y}; svg.appendChild(nodeGroup(x,y,'meter',m,m,nodeState[m])); }); }
+      function drawEquips(){ EQUIPS.forEach((name,i)=>{ const id='E-'+(i+1); const x=colX[3], y=yEquip[i]; nodes[id]={x,y}; svg.appendChild(nodeGroup(x,y,'equip',name,id,nodeState[id])); }); }
+
+      drawServer(); drawGateways(); drawMeters(); drawEquips();
+
+      // 선
+      function linkPath(a,b){ const dx=Math.max(60,(b.x-a.x)*0.35); return `M ${a.x+40} ${a.y} C ${a.x+dx} ${a.y}, ${b.x-dx} ${b.y}, ${b.x-40} ${b.y}`; }
+      linkState.forEach(({from,to,state})=>{
+        const a=nodes[from], b=nodes[to]; if(!a||!b) return;
+        const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+        p.setAttribute('d', linkPath(a,b));
+        p.setAttribute('class', 'link ' + (state==='ok'?'ok':'fault'));
+        p.dataset.tip = `통신: ${state==='ok'?'정상':'이상'}\n${from} → ${to}`;
+        attachTip(p);
+        svg.insertBefore(p, svg.firstChild);
+      });
+    }
+
+    // SVG helpers
+    function rect(x,y,w,h){ const r=ns('rect'); r.setAttribute('x',x); r.setAttribute('y',y); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('rx',4); return r; }
+    function line(x1,y1,x2,y2){ const l=ns('line'); l.setAttribute('x1',x1); l.setAttribute('y1',y1); l.setAttribute('x2',x2); l.setAttribute('y2',y2); return l; }
+    function circle(cx,cy,r){ const c=ns('circle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r); return c; }
+    function path(d){ const p=ns('path'); p.setAttribute('d',d); return p; }
+    function gear(cx,cy,r){ const g=ns('g'); for(let i=0;i<6;i++){ const a=i*Math.PI/3, x=cx+Math.cos(a)*(r+3), y=cy+Math.sin(a)*(r+3); const l=line(cx,cy,x,y); g.appendChild(l);} return g; }
+    function ns(tag){ return document.createElementNS('http://www.w3.org/2000/svg',tag); }
+
+    // 툴팁
+    function attachTip(el){
+      const tip = document.getElementById('topoTip');
+      el.addEventListener('mousemove', (e)=>{
+        if(!el.dataset.tip) return;
+        tip.innerHTML = el.dataset.tip.replace(/\n/g,'<br>');
+        tip.hidden = false;
+        tip.style.left = (e.clientX + 12) + 'px';
+        tip.style.top  = (e.clientY + 12) + 'px';
+      });
+      el.addEventListener('mouseleave', ()=> tip.hidden = true);
+    }
+
+    layout(); window.addEventListener('resize', layout);
+  })();
+  </script>
+</body>
+</html>

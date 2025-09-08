@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>비교 분석 | IWell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 전용 -->
+  <link rel="stylesheet" href="analysis-compare.css" />
+  <!-- 차트 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live"><a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>IWell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+  <!-- 네비 칩 -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip active">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+    </div>
+  </div>
+  <!-- 메인: 4×3 -->
+  <main class="grid-4x3">
+    <!-- 좌: 트리 & 조건 (1×3) -->
+    <aside class="card card-1x3">
+      <div class="card-header">비교 조건 / 계측기 선택</div>
+      <div class="card-body">
+        <!-- 모드 -->
+        <div class="toolbox">
+          <div class="input-row">
+            <label>모드</label>
+            <div class="chips" id="modeChips">
+              <button class="chip active" data-v="tdy">오늘 vs 전일</button>
+              <button class="chip" data-v="ab">두 구간 비교</button>
+            </div>
+          </div>
+          <div class="input-row">
+            <label>해상도</label>
+            <div class="chips" id="resChips">
+              <button class="chip active" data-v="1m">1분</button>
+              <button class="chip" data-v="5m">5분</button>
+            </div>
+          </div>
+          <div class="input-row">
+            <label>지표</label>
+            <div class="chips" id="metricChips">
+              <button class="chip active" data-v="kw">순시 kW</button>
+              <button class="chip" data-v="kwh">누적 kWh</button>
+            </div>
+          </div>
+          <!-- 구간 A/B (두 구간 모드에서 활성) -->
+          <div class="range-box" id="rangeBox">
+            <div class="range-row">
+              <span class="rlabel">구간 A</span>
+              <input type="datetime-local" id="aStart">
+              <span>~</span>
+              <input type="datetime-local" id="aEnd">
+            </div>
+            <div class="range-row">
+              <span class="rlabel">구간 B</span>
+              <input type="datetime-local" id="bStart">
+              <span>~</span>
+              <input type="datetime-local" id="bEnd">
+            </div>
+            <div class="muted small">두 구간의 길이가 다르면 <strong>더 짧은 구간</strong> 기준으로 비교합니다.</div>
+          </div>
+
+          <div class="btnrow">
+            <button class="btn primary" id="btnCompare">비교 실행</button>
+            <button class="btn" id="btnCsv">CSV 다운로드</button>
+          </div>
+
+          <div class="hint muted small">계측기는 최대 4개까지 선택(가독성). 더 선택 시 가장 최근 선택된 4개만 사용.</div>
+        </div>
+
+        <!-- 트리: 다중 선택 -->
+        <div class="tree-search">
+          <input type="text" id="treeSearch" placeholder="그룹/계측기 검색" />
+          <div class="btnrow">
+            <button class="btn" id="btnExpandAll">펼치기</button>
+            <button class="btn" id="btnCollapseAll">접기</button>
+            <button class="btn" id="btnClearSel">선택 해제</button>
+          </div>
+        </div>
+        <ul class="tree" id="groupTree"><!-- JS 렌더 --></ul>
+      </div>
+    </aside>
+
+    <!-- 우상단: 요약 + 비교 그래프 (3×2) -->
+    <section class="card card-3x2">
+      <div class="card-header">비교 그래프</div>
+      <div class="card-body">
+        <div class="summary-row">
+          <span class="pill">선택 계측기 <strong id="selCount">0</strong>개</span>
+          <span class="pill">구간 A 합계 <strong id="sumA">-</strong></span>
+          <span class="pill">구간 B 합계 <strong id="sumB">-</strong></span>
+          <span class="pill">Δ (B−A) <strong id="deltaAbs">-</strong> (<strong id="deltaPct">-</strong>)</span>
+        </div>
+        <div id="cmpChart" class="chart-main"></div>
+      </div>
+    </section>
+
+    <!-- 우하단: 데이터 표 (3×1) -->
+    <section class="card card-3x1">
+      <div class="card-header">데이터 표</div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table class="table" id="cmpTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>계측기</th>
+                <th>구간</th>
+                <th>구간 길이(분)</th>
+                <th>합계 kWh</th>
+                <th>평균 kW</th>
+                <th>최대 kW</th>
+              </tr>
+            </thead>
+            <tbody><!-- JS 렌더 --></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+  (function(){
+    // ===== 시계 =====
+    const clockEl = document.getElementById('datetime');
+    const updClock = ()=> clockEl && (clockEl.textContent = new Date().toLocaleTimeString('ko-KR'));
+    updClock(); setInterval(updClock, 1000);
+
+    // ===== 데모 장치 (모니터링/기간 페이지 톤과 동일) =====
+    const DEVICES = [
+      { id:'A-P-01', name:'프레스#1',   path:['공장A','라인1','성형'], power:820 },
+      { id:'A-P-02', name:'프레스#2',   path:['공장A','라인1','성형'], power:120 },
+      { id:'A-C-01', name:'컴프레서#1', path:['공장A','라인2','압축'], power:420 },
+      { id:'A-CH-01',name:'칠러#1',    path:['공장A','라인2','냉각'], power:260 },
+      { id:'B-R-01', name:'로봇암#1',   path:['공장B','조립','피킹'],   power:650 },
+      { id:'B-R-02', name:'로봇암#2',   path:['공장B','조립','피킹'],   power:180 },
+      { id:'B-CV-01',name:'컨베이어#1',path:['공장B','조립','이송'],   power:180 },
+      { id:'B-PA-01',name:'도장부스#1',path:['공장B','도장','부스'],   power:540 },
+      { id:'C-DR-01',name:'건조로#1',  path:['공장C','열처리','건조'], power:720 },
+      { id:'C-CF-01',name:'집진기#1',  path:['공장C','열처리','집진'], power:240 },
+    ];
+    const ROOTS = {
+      '위치': buildBy(DEVICES, d=>d.path[0], d=>d.path[1], d=>d.path[2]),
+      '공정': buildBy(DEVICES, d=>d.path[2], d=>d.path[0], d=>d.path[1]),
+      '전력': buildBy(DEVICES, _=>'전력',   d=>d.path[0], d=>d.path[1]),
+    };
+    function groupBy(arr, fn){ return arr.reduce((m,x)=> ((m[fn(x)]??=[]).push(x), m), {}); }
+    function buildBy(list,L1,L2,L3){
+      const g1 = groupBy(list,L1); const out={};
+      for(const[k1,a1] of Object.entries(g1)){ const g2=groupBy(a1,L2); out[k1]={};
+        for(const[k2,a2] of Object.entries(g2)){ const g3=groupBy(a2,L3); out[k1][k2]={};
+          for(const[k3,a3] of Object.entries(g3)){ out[k1][k2][k3]=a3; }
+        }
+      }
+      return out;
+    }
+    const fmtInt = (n)=> Math.round(n).toLocaleString('ko-KR');
+    const fmtNum = (n, d=2)=> (+n).toFixed(d);
+
+    // ===== 트리(체크박스) =====
+    const treeRoot = document.getElementById('groupTree');
+    const qInput   = document.getElementById('treeSearch');
+    document.getElementById('btnExpandAll').addEventListener('click', ()=>toggleAll(true));
+    document.getElementById('btnCollapseAll').addEventListener('click', ()=>toggleAll(false));
+    document.getElementById('btnClearSel').addEventListener('click', ()=>{ treeRoot.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked=false); updateSelection(); });
+    qInput.addEventListener('input', (e)=> filterTree(e.target.value.trim()));
+    function nodeLi(label, devicesOrNull){
+      const li=document.createElement('li');
+      const row=document.createElement('div'); row.className='node'; li.appendChild(row);
+      const tg=document.createElement('span'); tg.className='toggle'; tg.textContent='−'; row.appendChild(tg);
+      const lb=document.createElement('span'); lb.className='label'; lb.textContent=label; row.appendChild(lb);
+      if (Array.isArray(devicesOrNull)) {
+        // leaf: devices[]
+        const ul=document.createElement('ul'); ul.className='subtree'; li.appendChild(ul);
+        devicesOrNull.forEach(d=>{
+          const leaf=document.createElement('li');
+          const r=document.createElement('label'); r.className='leaf';
+          const cb=document.createElement('input'); cb.type='checkbox'; cb.value=d.id; cb.addEventListener('change', updateSelection);
+          r.appendChild(cb);
+          const txt=document.createElement('span'); txt.textContent=`${d.name} (${d.id})`;
+          r.appendChild(txt); leaf.appendChild(r); ul.appendChild(leaf);
+        });
+      } else {
+        // clickable fold
+        row.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          const st=li.querySelector(':scope>.subtree'); if(!st) return;
+          const open=st.style.display===''||st.style.display==='block';
+          st.style.display=open?'none':'block'; tg.textContent=open?'+':'−';
+        });
+      }
+      return li;
+    }
+    function renderTree(){
+      treeRoot.innerHTML='';
+      for(const [rootName,lvl1] of Object.entries(ROOTS)){
+        const rt=nodeLi(rootName, null); treeRoot.appendChild(rt);
+        const ul1=document.createElement('ul'); ul1.className='subtree'; rt.appendChild(ul1);
+        for(const [k1,lvl2] of Object.entries(lvl1)){
+          const li1=nodeLi(k1, null); ul1.appendChild(li1);
+          const ul2=document.createElement('ul'); ul2.className='subtree'; li1.appendChild(ul2);
+          for(const [k2,lvl3] of Object.entries(lvl2)){
+            const li2=nodeLi(k2, lvl3[Object.keys(lvl3)[0]] ? null : null); ul2.appendChild(li2);
+            const ul3=document.createElement('ul'); ul3.className='subtree'; li2.appendChild(ul3);
+            for(const [k3,devs] of Object.entries(lvl3)){
+              const li3=nodeLi(k3, devs); ul3.appendChild(li3);
+            }
+          }
+        }
+      }
+    }
+    function toggleAll(open){
+      treeRoot.querySelectorAll('.subtree').forEach(s=> s.style.display=open?'block':'none');
+      treeRoot.querySelectorAll('.node .toggle').forEach(t=> t.textContent=open?'−':'+');
+    }
+    function filterTree(q){
+      const labels = treeRoot.querySelectorAll('.node .label, .leaf span');
+      labels.forEach(l=>{
+        const li=l.closest('li');
+        li.style.display = q ? (l.textContent.includes(q)?'':'none') : '';
+      });
+    }
+    renderTree(); toggleAll(true);
+
+    // ===== 선택된 계측기 관리 (최대 4개) =====
+    let selectedIds = [];
+    function updateSelection(){
+      const all = [...treeRoot.querySelectorAll('input[type=checkbox]:checked')].map(cb=> cb.value);
+      // 4개 제한
+      if (all.length>4){
+        showToast('최대 4개까지 선택 가능합니다. 최근 선택 4개만 유지합니다.');
+        selectedIds = all.slice(-4);
+        // 체크박스 상태 반영
+        treeRoot.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = selectedIds.includes(cb.value));
+      } else {
+        selectedIds = all;
+      }
+      document.getElementById('selCount').textContent = selectedIds.length;
+    }
+
+    // ===== UI 컨트롤 =====
+    const chips = (wrapId)=> Array.from(document.querySelectorAll('#'+wrapId+' .chip'));
+    function setActive(wrapId, btn){
+      chips(wrapId).forEach(b=> b.classList.remove('active')); btn.classList.add('active');
+    }
+    chips('modeChips').forEach(btn=> btn.addEventListener('click', ()=>{ setActive('modeChips', btn); toggleRangeBox(); }));
+    chips('resChips').forEach(btn=> btn.addEventListener('click', ()=> setActive('resChips', btn)));
+    chips('metricChips').forEach(btn=> btn.addEventListener('click', ()=> setActive('metricChips', btn)));
+
+    function toggleRangeBox(){
+      const mode = document.querySelector('#modeChips .chip.active').dataset.v;
+      document.getElementById('rangeBox').style.display = (mode==='ab') ? '' : 'none';
+    }
+    toggleRangeBox();
+
+    // 구간 기본값: 오늘/전일 모드에선 숨김. 두 구간 모드 기본값 설정
+    const aStart = document.getElementById('aStart');
+    const aEnd   = document.getElementById('aEnd');
+    const bStart = document.getElementById('bStart');
+    const bEnd   = document.getElementById('bEnd');
+    function setDefaultRanges(){
+      const now = new Date();
+      const pad=(n)=> String(n).padStart(2,'0');
+      const toLocal=(d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      const A0=new Date(now); A0.setHours(9,0,0,0);
+      const A1=new Date(A0);  A1.setHours(18,0,0,0);
+      const B0=new Date(A0);  B0.setDate(B0.getDate()-3);
+      const B1=new Date(A1);  B1.setDate(B1.getDate()-3);
+      aStart.value = toLocal(A0); aEnd.value = toLocal(A1);
+      bStart.value = toLocal(B0); bEnd.value = toLocal(B1);
+    }
+    setDefaultRanges();
+
+    // ===== 비교 실행 =====
+    document.getElementById('btnCompare').addEventListener('click', runCompare);
+    const chart = echarts.init(document.getElementById('cmpChart'));
+    const tableBody = document.querySelector('#cmpTable tbody');
+
+    function runCompare(){
+      if (selectedIds.length===0){
+        showToast('계측기를 하나 이상 선택하세요.');
+        return;
+      }
+      const mode   = document.querySelector('#modeChips .chip.active').dataset.v; // 'tdy' | 'ab'
+      const resol  = document.querySelector('#resChips .chip.active').dataset.v;  // '1m' | '5m'
+      const metric = document.querySelector('#metricChips .chip.active').dataset.v; // 'kw' | 'kwh'
+
+      // 시간 구간 정의
+      let A0,A1,B0,B1;
+      const now = new Date();
+      if (mode==='tdy'){
+        // 오늘 00:00~현재 vs 전일 동일 구간
+        A0 = new Date(now); A0.setHours(0,0,0,0);
+        A1 = new Date(now);
+        B0 = new Date(A0);  B0.setDate(B0.getDate()-1);
+        B1 = new Date(A1);  B1.setDate(B1.getDate()-1);
+      } else {
+        // 사용자 지정
+        A0 = new Date(aStart.value); A1 = new Date(aEnd.value);
+        B0 = new Date(bStart.value); B1 = new Date(bEnd.value);
+        if (!(A0<A1 && B0<B1)){
+          showToast('구간 A/B의 시작과 끝을 올바르게 설정하세요.');
+          return;
+        }
+      }
+
+      // 각 계측기별로 시계열 생성
+      const meters = selectedIds.map(id=> DEVICES.find(d=> d.id===id)).filter(Boolean);
+      const series = []; // echarts 시리즈
+      const colorsA = ['#2563eb','#059669','#d97706','#7c3aed']; // A쪽
+      const colorsB = ['#93c5fd','#86efac','#fcd34d','#c4b5fd']; // B쪽(옅게)
+      const labels  = []; // x축 라벨(공통 index)
+
+      // 모든 계측기가 동일한 길이로 정렬 (더 짧은 길이 기준)
+      let lenMin = Infinity;
+      const perMeter = meters.map((m, idx)=>{
+        const base = Math.max(0.5, m.power/100); // 시뮬레이션 베이스 kW
+        const SA = synthSeries(base, A0, A1, resol);
+        const SB = synthSeries(base*randSpan(0.9,1.1), B0, B1, resol); // B는 약간 변형
+        lenMin = Math.min(lenMin, SA.length, SB.length);
+        return { m, SA, SB, idx };
+      });
+      // 라벨: 0..lenMin-1 (분 단위 경과)
+      for (let i=0;i<lenMin;i++) labels.push(i);
+
+      // 요약 계산용 합계
+      let sumA=0, sumB=0;
+      tableBody.innerHTML = '';
+      let rowIdx=1;
+
+      perMeter.forEach(({m,SA,SB,idx})=>{
+        const nameA = `${m.name} - A`;
+        const nameB = `${m.name} - B`;
+        const lineA = SA.slice(0,lenMin).map(p=> metric==='kw'? p.kw : p.kwhCum);
+        const lineB = SB.slice(0,lenMin).map(p=> metric==='kw'? p.kw : p.kwhCum);
+
+        series.push({
+          name: nameA, type:'line', data: lineA, showSymbol:false, smooth:0.25,
+          lineStyle:{ width:2 }, emphasis:{ focus:'series' }, color: colorsA[idx%colorsA.length]
+        });
+        series.push({
+          name: nameB, type:'line', data: lineB, showSymbol:false, smooth:0.25,
+          lineStyle:{ width:2, type:'dashed' }, emphasis:{ focus:'series' }, color: colorsB[idx%colorsB.length]
+        });
+
+        // 표용 집계
+        const sumKwhA = SA[lenMin-1]?.kwhCum ?? 0;
+        const sumKwhB = SB[lenMin-1]?.kwhCum ?? 0;
+        const avgKwA  = avg(lineA);
+        const avgKwB  = avg(lineB);
+        const maxKwA  = Math.max(...SA.slice(0,lenMin).map(p=> p.kw));
+        const maxKwB  = Math.max(...SB.slice(0,lenMin).map(p=> p.kw));
+        sumA += (metric==='kw'? avgKwA : sumKwhA);
+        sumB += (metric==='kw'? avgKwB : sumKwhB);
+
+        // 표 행 추가
+        addRow(rowIdx++, m.name, 'A', lenMin, sumKwhA, avgKwA, maxKwA);
+        addRow(rowIdx++, m.name, 'B', lenMin, sumKwhB, avgKwB, maxKwB);
+      });
+
+      // 상단 요약
+      document.getElementById('sumA').textContent = (metric==='kw' ? `${fmtNum(sumA,2)} kW(avg)` : `${fmtNum(sumA,2)} kWh`);
+      document.getElementById('sumB').textContent = (metric==='kw' ? `${fmtNum(sumB,2)} kW(avg)` : `${fmtNum(sumB,2)} kWh`);
+      const dAbs = sumB - sumA;
+      const dPct = sumA===0 ? 0 : (dAbs/sumA*100);
+      document.getElementById('deltaAbs').textContent = (metric==='kw'? `${fmtNum(dAbs,2)} kW` : `${fmtNum(dAbs,2)} kWh`);
+      document.getElementById('deltaPct').textContent = `${fmtNum(dPct,1)} %`;
+
+      // 차트
+      chart.setOption({
+        animation:false,
+        tooltip:{
+          trigger:'axis',
+          formatter:(params)=>{
+            const idx = params[0].axisValue;
+            const lines = params.map(p => {
+              return `<span style="display:inline-block;margin-right:6px;border-radius:10px;width:10px;height:10px;background:${p.color}"></span>${p.seriesName}: <b>${fmtNum(p.data)}</b>`;
+            }).join('<br>');
+            return `t+${idx} ${resol === '1m' ? '분' : '×5분'}<br>${lines}`;
+          }
+        },
+        legend:{ type:'scroll' },
+        grid:{ left:56, right:24, top:28, bottom:56 },
+        xAxis:{
+          type:'category', data: labels,
+          name:'경과(분)', nameGap:10,
+          axisLabel:{ hideOverlap:true }
+        },
+        yAxis:{
+          type:'value',
+          axisLabel:{ formatter:(v)=> v.toLocaleString('ko-KR') + (metric==='kw'?'':'') }
+        },
+        dataZoom:[ { type:'slider', height:14, bottom:8, start:0, end:100 }, { type:'inside' } ],
+        series
+      });
+    }
+
+    // ===== 데이터 합성기 =====
+    // resol: '1m' | '5m'
+    function synthSeries(baseKW, t0, t1, resol){
+      const stepMin = (resol==='1m') ? 1 : 5;
+      const out=[]; let kwhCum=0;
+      const msStep = stepMin*60*1000;
+      const n = Math.max(1, Math.floor((t1 - t0)/msStep));
+      for (let i=0;i<n;i++){
+        const t = new Date(t0.getTime() + i*msStep);
+        const hour = t.getHours() + t.getMinutes()/60;
+        const diurnal = 0.6 + 0.6*Math.sin((hour-7)/24 * 2*Math.PI); // 낮>밤
+        const rnd = (Math.random()-0.5)*0.2;
+        const kw = Math.max(0.1, +(baseKW * (diurnal + rnd)).toFixed(3));
+        const kwh = kw * (stepMin/60);
+        kwhCum += kwh;
+        out.push({ t, kw, kwh, kwhCum });
+      }
+      return out;
+    }
+    function randSpan(a,b){ return a + Math.random()*(b-a); }
+    function avg(arr){ return arr.length? arr.reduce((s,v)=> s+v,0)/arr.length : 0; }
+
+    // ===== 표/CSV =====
+    function addRow(i, name, tag, minutes, sumKwh, avgKw, maxKw){
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i}</td>
+        <td>${name}</td>
+        <td>${tag}</td>
+        <td>${minutes}</td>
+        <td>${fmtNum(sumKwh,2)}</td>
+        <td>${fmtNum(avgKw,2)}</td>
+        <td>${fmtNum(maxKw,2)}</td>
+      `;
+      tableBody.appendChild(tr);
+    }
+    document.getElementById('btnCsv').addEventListener('click', ()=>{
+      const rows = [...tableBody.querySelectorAll('tr')].map(tr=> [...tr.children].map(td=> td.textContent));
+      if (!rows.length){ showToast('다운로드할 데이터가 없습니다. 먼저 비교를 실행하세요.'); return; }
+      const header = ['index','meter','range','minutes','sum_kWh','avg_kW','max_kW'];
+      const lines = [header.join(',')];
+      rows.forEach(r=> lines.push(r.join(',')));
+      const blob=new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download='comparison-analysis.csv'; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    // ===== 요약/레이아웃 =====
+    function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1200); }
+    function fitMainHeight(){
+      const main = document.querySelector('main.grid-4x3');
+      const header = document.querySelector('header');
+      const nav = document.querySelector('.sub-banner.nav-banner');
+      if (!main) return;
+      const h = window.innerHeight - (header?header.offsetHeight:0) - (nav?nav.offsetHeight:0);
+      main.style.height = h + 'px';
+    }
+    window.addEventListener('load', fitMainHeight);
+    window.addEventListener('resize', fitMainHeight);
+
+    // 초기 상태: 기본 2개 선택 & 즉시 비교 실행
+    (function initDefault(){
+      // 트리에서 첫 두 장치를 체크
+      setTimeout(()=>{
+        const cbs = treeRoot.querySelectorAll('input[type=checkbox]');
+        cbs[0] && (cbs[0].checked=true);
+        cbs[1] && (cbs[1].checked=true);
+        updateSelection();
+        runCompare();
+      }, 0);
+    })();
+  })();
+  </script>
+  
+   <script src="script.js"></script>
+</body>
+</html>

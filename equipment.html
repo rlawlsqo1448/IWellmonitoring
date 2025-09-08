@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>설비 대시보드 | Iwell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 이 페이지 전용 -->
+  <link rel="stylesheet" href="equipment.css" />
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live"><a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>Iwell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+  <!-- (sub-banner를 네비로 재활용) -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip active">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+      <!-- 요청대로 '알람 히스토리' / '실시간 알람' 제거 -->
+    </div>
+  </div>
+
+  <!-- 메인: 4×3 그리드 -->
+  <main class="grid-4x3">
+    <!-- 좌: 설비 트리 (1×3) -->
+    <aside class="card card-1x3">
+      <div class="card-header">설비 트리</div>
+      <div class="card-body">
+        <div class="tree-search">
+          <input type="text" id="treeSearch" placeholder="설비명/공정/라인 검색" />
+          <div class="btnrow">
+            <button class="btn" id="btnExpandAll">펼치기</button>
+            <button class="btn" id="btnCollapseAll">접기</button>
+          </div>
+        </div>
+        <ul class="tree" id="equipTree"><!-- JS 렌더 --></ul>
+      </div>
+    </aside>
+
+    <!-- 우상단: 선택 설비 (3×1) — 시각적 구역/구분선/정렬 강화 -->
+    <section class="card card-3x1">
+      <div class="card-header">선택 설비</div>
+      <div class="card-body">
+        <!-- 상단 3구역 -->
+        <div class="sel-grid">
+          <!-- 구역 1: 설비 -->
+          <div class="sel-section">
+            <div class="sel-title">설비</div>
+            <div class="kpi" id="selName">-</div>
+            <div class="muted" id="selPath">-</div>
+          </div>
+          <!-- 구역 2: 상태 -->
+          <div class="sel-section">
+            <div class="sel-title">상태</div>
+            <div class="row">
+              <span class="badge status-off" id="selStatus">OFF</span>
+              <span class="pill">통신 <strong id="selComm">-</strong></span>
+            </div>
+            <div class="kv">
+              <span class="kv-label">업데이트</span>
+              <span class="kv-value" id="selUpdated">-</span>
+            </div>
+          </div>
+          <!-- 구역 3: 실시간 -->
+          <div class="sel-section">
+            <div class="sel-title">실시간</div>
+            <div class="row">
+              <div class="kpi"><span id="selPower">-</span> kW</div>
+              <div class="kpi sub"><span id="selTemp">-</span> ℃</div>
+            </div>
+            <div class="kv">
+              <span class="kv-label">전일 동시간대 대비</span>
+              <span class="kv-value" id="selDelta">-</span>
+            </div>
+          </div>
+        </div>
+        <!-- 하단 메타정보 행 -->
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="meta-label">모델</div>
+            <div class="meta-value" id="selModel">-</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">시리얼</div>
+            <div class="meta-value" id="selSerial">-</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">FW</div>
+            <div class="meta-value" id="selFw">-</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">IP</div>
+            <div class="meta-value" id="selIp">-</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">업타임</div>
+            <div class="meta-value" id="selUptime">-</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 우중단: 제어/상세 (2×1) -->
+    <section class="card card-2x1">
+      <div class="card-header">제어 / 상세</div>
+      <div class="card-body ctrl-body">
+        <div class="ctrl-left">
+          <div class="row">
+            <label class="muted" for="modeSelect">모드</label>
+            <select id="modeSelect" class="select">
+              <option value="AUTO">AUTO</option>
+              <option value="MANUAL">MANUAL</option>
+            </select>
+            <span class="muted">안전 인터락:</span>
+            <span id="interlock" class="badge">-</span>
+          </div>
+          <div class="row">
+            <label class="muted" for="limitRange">출력 제한</label>
+            <input type="range" id="limitRange" min="50" max="120" value="100">
+            <span id="limitVal" class="tag">100%</span>
+          </div>
+          <div class="btnbar" id="controlBar"><!-- 제어 가능 설비만 버튼 생성 --></div>
+        </div>
+        <div class="ctrl-right">
+          <div class="muted">상세 페이지</div>
+          <a id="detailLink" class="link" href="#" target="_blank">설비 상세 페이지로 이동</a>
+          <div class="muted" style="margin-top:8px;">최근 명령</div>
+          <ul id="eventLog" class="log-list" style="max-height:88px; overflow:auto;"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 우중단 남은 1×1: 이벤트 요약 -->
+    <section class="card card-1x1">
+      <div class="card-header">이벤트 요약</div>
+      <div class="card-body log-body">
+        <ul id="eventSummary" class="log-list"></ul>
+      </div>
+    </section>
+
+    <!-- 마지막 행: 전력 / 온도 / 계측+알람 (각 1×1) -->
+    <section class="card card-1x1">
+      <div class="card-header">전력 추이 (최근 10분)</div>
+      <div class="card-body">
+        <div class="chart-mini" id="chartPower"></div>
+        <div class="muted">스크롤/드래그로 확대 · 축소 가능</div>
+      </div>
+    </section>
+
+    <section class="card card-1x1">
+      <div class="card-header">온도 추이 (최근 10분)</div>
+      <div class="card-body">
+        <div class="chart-mini" id="chartTemp"></div>
+        <div class="muted">스크롤/드래그로 확대 · 축소 가능</div>
+      </div>
+    </section>
+
+    <section class="card card-1x1">
+      <div class="card-header">계측 상세 & 알람</div>
+      <div class="card-body metrics-body">
+        <table class="table">
+          <tbody>
+            <tr><th>전압 (V)</th><td id="mVolt">-</td></tr>
+            <tr><th>전류 (A)</th><td id="mAmp">-</td></tr>
+            <tr><th>역률 (PF)</th><td id="mPF">-</td></tr>
+            <tr><th>금일 사용량 (kWh)</th><td id="mKwhToday">-</td></tr>
+            <tr><th>가동 시간 (h)</th><td id="mRunHours">-</td></tr>
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <div class="row"><span class="muted">최근 알람</span><span class="badge" id="lastAlarm">없음</span></div>
+        <div class="row"><span class="muted">알람 수 (24h)</span><span class="badge" id="alarmCount">0</span></div>
+        <a class="link" href="alarms.html" target="_blank">알람 히스토리로 이동</a>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <!-- 페이지 스크립트 (이전 버전과 동일, 선택 박스 구조만 바뀜) -->
+  <script>
+    (function(){
+      // 시계
+      const clockEl = document.getElementById('datetime');
+      function updateClock(){ if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('ko-KR'); }
+      updateClock(); setInterval(updateClock, 1000);
+
+      // 설비 데이터 (3단계 경로)
+      const DEVICES = [
+        { id:'A-P-01', name:'프레스#1',   path:['공장A','라인1','성형'],   controllable:true,  status:'ON',  comm:'정상', power:820, temp:37, model:'LP-500', serial:'PR1-238-AX9', fw:'1.4.2', ip:'10.0.1.21', uptime:'12:34:12', interlock:'정상', metrics:{ v:380,a:12.5,pf:0.93,kwhToday:560,runH:6.2 }, alarms:[] },
+        { id:'A-P-02', name:'프레스#2',   path:['공장A','라인1','성형'],   controllable:true,  status:'OFF', comm:'이상', power:  0, temp:28, model:'LP-500', serial:'PR2-992-KQ1', fw:'1.4.2', ip:'10.0.1.22', uptime:'03:11:42', interlock:'해제', metrics:{ v:0,a:0,pf:0.00,kwhToday:120,runH:1.0 }, alarms:['과전류 경고'] },
+        { id:'A-C-01', name:'컴프레서#1', path:['공장A','라인2','압축'],   controllable:false, status:'ON',  comm:'정상', power:420, temp:33, model:'CMP-220', serial:'CP1-882-JJ7', fw:'2.0.0', ip:'10.0.2.11', uptime:'45:12:09', interlock:'정상', metrics:{ v:380,a:7.5,pf:0.95,kwhToday:310,runH:5.1 }, alarms:[] },
+        { id:'A-CH-01',name:'칠러#1',    path:['공장A','라인2','냉각'],   controllable:false, status:'ON',  comm:'정상', power:260, temp:17, model:'CH-10',  serial:'CH1-541-AB3', fw:'2.0.1', ip:'10.0.2.31', uptime:'18:21:33', interlock:'정상', metrics:{ v:380,a:5.1,pf:0.96,kwhToday:210,runH:4.7 }, alarms:[] },
+        { id:'B-R-01', name:'로봇암#1',   path:['공장B','조립','피킹'],     controllable:true,  status:'ON',  comm:'정상', power:650, temp:39, model:'RB-ARM', serial:'RB1-771-CC2', fw:'3.1.0', ip:'10.0.3.31', uptime:'21:55:00', interlock:'정상', metrics:{ v:220,a:8.2,pf:0.90,kwhToday:430,runH:3.8 }, alarms:['온도상승'] },
+        { id:'B-R-02', name:'로봇암#2',   path:['공장B','조립','피킹'],     controllable:false, status:'OFF', comm:'정상', power:  0, temp:26, model:'RB-ARM', serial:'RB2-115-MM3', fw:'3.1.0', ip:'10.0.3.32', uptime:'00:22:18', interlock:'해제', metrics:{ v:0,a:0,pf:0.00,kwhToday:80, runH:0.7 }, alarms:[] },
+        { id:'B-CV-01', name:'컨베이어#1',path:['공장B','조립','이송'],     controllable:false, status:'ON',  comm:'정상', power:180, temp:31, model:'CV-100', serial:'CV1-551-XY9', fw:'1.0.9', ip:'10.0.3.41', uptime:'07:10:04', interlock:'정상', metrics:{ v:220,a:2.3,pf:0.92,kwhToday:150,runH:2.4 }, alarms:[] },
+        { id:'B-PA-01', name:'도장부스#1',path:['공장B','도장','부스'],     controllable:true,  status:'ON',  comm:'정상', power:540, temp:36, model:'PA-BOX', serial:'PA1-991-TR3', fw:'1.3.2', ip:'10.0.4.21', uptime:'09:44:12', interlock:'정상', metrics:{ v:380,a:9.1,pf:0.91,kwhToday:390,runH:3.4 }, alarms:[] },
+        { id:'C-DR-01', name:'건조로#1',  path:['공장C','열처리','건조'],   controllable:true,  status:'ON',  comm:'정상', power:720, temp:120,model:'DRY-700',serial:'DR1-118-ZZ1', fw:'4.0.0', ip:'10.0.5.11', uptime:'52:13:51', interlock:'정상', metrics:{ v:380,a:11.5,pf:0.92,kwhToday:610,runH:8.2 }, alarms:['과온'] },
+        { id:'C-CF-01', name:'집진기#1',  path:['공장C','열처리','집진'],   controllable:false, status:'ON',  comm:'정상', power:240, temp:29, model:'CF-300', serial:'CF1-222-DD8', fw:'1.2.0', ip:'10.0.5.21', uptime:'15:05:25', interlock:'정상', metrics:{ v:380,a:4.0,pf:0.94,kwhToday:180,runH:4.0 }, alarms:[] },
+      ];
+      const fmt = (n) => (typeof n === 'number') ? n.toLocaleString('ko-KR') : n;
+
+      // 트리
+      const treeRoot = document.getElementById('equipTree');
+      const qInput = document.getElementById('treeSearch');
+      document.getElementById('btnExpandAll').addEventListener('click', ()=>toggleAll(true));
+      document.getElementById('btnCollapseAll').addEventListener('click', ()=>toggleAll(false));
+      qInput.addEventListener('input', (e)=> filterTree(e.target.value.trim()));
+
+      function groupBy(arr, keyFn){ return arr.reduce((m,x)=>((m[keyFn(x)] ??= []).push(x), m), {}); }
+      function buildTree(){
+        treeRoot.innerHTML='';
+        const byFac=groupBy(DEVICES,d=>d.path[0]);
+        for (const [fac, facDevs] of Object.entries(byFac)){
+          const facLi=nodeLi(fac); treeRoot.appendChild(facLi);
+          const ulLine=document.createElement('ul'); ulLine.className='subtree'; facLi.appendChild(ulLine);
+          const byLine=groupBy(facDevs,d=>d.path[1]);
+          for (const [line, lineDevs] of Object.entries(byLine)){
+            const lineLi=nodeLi(line); ulLine.appendChild(lineLi);
+            const ulProc=document.createElement('ul'); ulProc.className='subtree'; lineLi.appendChild(ulProc);
+            const byProc=groupBy(lineDevs,d=>d.path[2]);
+            for (const [proc, procDevs] of Object.entries(byProc)){
+              const procLi=nodeLi(proc); ulProc.appendChild(procLi);
+              const ulDev=document.createElement('ul'); ulDev.className='subtree'; procLi.appendChild(ulDev);
+              for (const dev of procDevs){ ulDev.appendChild(deviceLi(dev)); }
+            }
+          }
+        }
+      }
+      function nodeLi(label){
+        const li=document.createElement('li');
+        const row=document.createElement('div'); row.className='node'; li.appendChild(row);
+        const tg=document.createElement('span'); tg.className='toggle'; tg.textContent='−'; row.appendChild(tg);
+        const lb=document.createElement('span'); lb.className='label'; lb.textContent=label; row.appendChild(lb);
+        row.addEventListener('click',(e)=>{
+          e.stopPropagation();
+          const st=li.querySelector(':scope > .subtree'); if(!st) return;
+          const open=st.style.display==='block'||st.style.display===''; st.style.display=open?'none':'block';
+          tg.textContent=open?'+':'−';
+        });
+        return li;
+      }
+      function deviceLi(dev){
+        const li=document.createElement('li');
+        const row=document.createElement('div'); row.className='node'; li.appendChild(row);
+        const dot=document.createElement('span'); dot.className='toggle'; dot.textContent='•'; row.appendChild(dot);
+        const lb=document.createElement('span'); lb.className='label'; lb.textContent=`${dev.name} (${dev.id})`; row.appendChild(lb);
+        const st=document.createElement('span'); st.className='badge '+(dev.status==='ON'?'status-on':'status-off'); st.textContent=dev.status; row.appendChild(st);
+        row.addEventListener('click',(e)=>{ e.stopPropagation(); selectDevice(dev.id); highlight(row); });
+        return li;
+      }
+      function highlight(node){ treeRoot.querySelectorAll('.node').forEach(n=>n.classList.remove('selected')); node.classList.add('selected'); }
+      function toggleAll(open){
+        treeRoot.querySelectorAll('.subtree').forEach(s=>s.style.display=open?'block':'none');
+        treeRoot.querySelectorAll('.node .toggle').forEach(t=>{ if(t.textContent==='+'||t.textContent==='−') t.textContent=open?'−':'+'; });
+      }
+      function filterTree(q){
+        const labels=treeRoot.querySelectorAll('.node .label');
+        labels.forEach(l=>{
+          const li=l.closest('li'); li.style.display=q?(l.textContent.includes(q)?'':'none'):'';
+        });
+      }
+      buildTree(); toggleAll(true);
+
+      // 선택 설비 바인딩
+      const $selName=document.getElementById('selName');
+      const $selPath=document.getElementById('selPath');
+      const $selStatus=document.getElementById('selStatus');
+      const $selComm=document.getElementById('selComm');
+      const $selUpdated=document.getElementById('selUpdated');
+      const $selPower=document.getElementById('selPower');
+      const $selTemp=document.getElementById('selTemp');
+      const $selDelta=document.getElementById('selDelta');
+      const $selModel=document.getElementById('selModel');
+      const $selSerial=document.getElementById('selSerial');
+      const $selFw=document.getElementById('selFw');
+      const $selIp=document.getElementById('selIp');
+      const $selUptime=document.getElementById('selUptime');
+
+      const $detailLink=document.getElementById('detailLink');
+      const $controlBar=document.getElementById('controlBar');
+      const $modeSelect=document.getElementById('modeSelect');
+      const $limitRange=document.getElementById('limitRange');
+      const $limitVal=document.getElementById('limitVal');
+      const $interlock=document.getElementById('interlock');
+
+      const $mVolt=document.getElementById('mVolt');
+      const $mAmp=document.getElementById('mAmp');
+      const $mPF=document.getElementById('mPF');
+      const $mKwhT=document.getElementById('mKwhToday');
+      const $mRunH=document.getElementById('mRunHours');
+
+      const $lastAlarm=document.getElementById('lastAlarm');
+      const $alarmCount=document.getElementById('alarmCount');
+
+      const toast=document.getElementById('toast');
+      function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1500); }
+      function logEvent(text){
+        const li=document.createElement('li'); li.textContent=`[${new Date().toLocaleTimeString('ko-KR')}] ${text}`;
+        document.getElementById('eventLog').prepend(li);
+        const sum=document.getElementById('eventSummary'); const li2=li.cloneNode(true); sum.prepend(li2);
+        while(sum.children.length>6) sum.removeChild(sum.lastChild);
+        const el=document.getElementById('eventLog'); while(el.children.length>12) el.removeChild(el.lastChild);
+      }
+
+      let selectedId=null;
+
+      function selectDevice(id){
+        const dev=DEVICES.find(d=>d.id===id); if(!dev) return; selectedId=id;
+
+        $selName.textContent=dev.name;
+        $selPath.textContent=dev.path.join(' / ');
+        $selStatus.textContent=dev.status;
+        $selStatus.className='badge '+(dev.status==='ON'?'status-on':'status-off');
+        $selComm.textContent=dev.comm;
+        $selUpdated.textContent=new Date().toLocaleTimeString('ko-KR');
+        $selPower.textContent=fmt(dev.power);
+        $selTemp.textContent=fmt(dev.temp);
+        const delta=dev.power>0?((dev.power-dev.power*0.95)/(dev.power*0.95))*100:0;
+        $selDelta.textContent=(delta>=0?'+':'')+delta.toFixed(1)+'%';
+
+        $selModel.textContent=dev.model; $selSerial.textContent=dev.serial; $selFw.textContent=dev.fw;
+        $selIp.textContent=dev.ip; $selUptime.textContent=dev.uptime;
+
+        $interlock.textContent=dev.interlock;
+        $interlock.className='badge '+(dev.interlock==='정상'?'status-on':'status-off');
+
+        $mVolt.textContent=fmt(dev.metrics.v); $mAmp.textContent=fmt(dev.metrics.a);
+        $mPF.textContent=dev.metrics.pf.toFixed(2); $mKwhT.textContent=fmt(dev.metrics.kwhToday);
+        $mRunH.textContent=dev.metrics.runH.toFixed(1);
+
+        $alarmCount.textContent=dev.alarms.length; $lastAlarm.textContent=dev.alarms[0]||'없음';
+
+        $detailLink.href=`device-detail.html?id=${encodeURIComponent(dev.id)}`;
+
+        $controlBar.innerHTML='';
+        if(dev.controllable){
+          $controlBar.append(
+            mkBtn('ON','primary',()=>doControl(dev,'ON')),
+            mkBtn('OFF','danger', ()=>doControl(dev,'OFF')),
+            mkBtn('RESET','warn', ()=>doControl(dev,'RESET')),
+            mkBtn('ALARM ACK','', ()=>ackAlarm(dev))
+          );
+        } else {
+          const span=document.createElement('span'); span.className='muted'; span.textContent='제어 불가 설비'; $controlBar.append(span);
+        }
+
+        $modeSelect.value='AUTO'; $limitRange.value=100; $limitVal.textContent='100%';
+
+        resetCharts(dev); logEvent(`선택됨: ${dev.name} (${dev.id})`);
+      }
+      function mkBtn(label,cls,handler){ const b=document.createElement('button'); b.className='btn '+cls; b.textContent=label; b.addEventListener('click',handler); return b; }
+
+      function doControl(dev,action){
+        if(action==='ON'){ dev.status='ON'; if(dev.power===0) dev.power=300; }
+        if(action==='OFF'){ dev.status='OFF'; dev.power=0; }
+        if(action==='RESET'){ /* 상태 초기화 */ }
+        showToast(`${dev.name} ${action} 명령 전송`); logEvent(`제어: ${action}`);
+        if(dev.id===selectedId) selectDevice(dev.id);
+      }
+      function ackAlarm(dev){
+        if(dev.alarms.length>0){
+          dev.alarms=[]; showToast('알람 확인(Ack)'); logEvent('알람 확인');
+          if(dev.id===selectedId){ document.getElementById('alarmCount').textContent='0'; document.getElementById('lastAlarm').textContent='없음'; }
+        }
+      }
+      document.getElementById('modeSelect').addEventListener('change',(e)=>{ logEvent(`모드 변경: ${e.target.value}`); showToast(`모드: ${e.target.value}`); });
+      document.getElementById('limitRange').addEventListener('input',(e)=>{ document.getElementById('limitVal').textContent=e.target.value+'%'; });
+      document.getElementById('limitRange').addEventListener('change',(e)=>{ logEvent(`출력 제한: ${e.target.value}%`); showToast(`출력 제한 ${e.target.value}%`); });
+
+      // 차트
+      const chartPower=echarts.init(document.getElementById('chartPower'));
+      const chartTemp =echarts.init(document.getElementById('chartTemp'));
+      let seriesPower=[], seriesTemp=[];
+
+      function resetCharts(dev){
+        const now=Date.now(); seriesPower=[]; seriesTemp=[];
+        for(let i=299;i>=0;i--){
+          const t=now-i*2000;
+          const p=Math.max(0, dev.power+(Math.sin(i/10)*10)+(Math.random()*8-4));
+          const tp=Math.max(0,dev.temp +(Math.cos(i/18)*0.6)+(Math.random()*0.4-0.2));
+          seriesPower.push([t, Math.round(p)]);
+          seriesTemp.push([t, parseFloat(tp.toFixed(1))]);
+        }
+        chartPower.setOption(lineOption(seriesPower,'kW'));
+        chartTemp .setOption(lineOption(seriesTemp ,'℃'));
+      }
+      function lineOption(data,unit){
+        return {
+          animation:false,
+          tooltip:{ trigger:'axis', valueFormatter:(v)=> (unit==='kW'? v.toLocaleString('ko-KR')+' kW' : v+' ℃') },
+          grid:{ left:48, right:12, top:8, bottom:48 },
+          xAxis:{
+            type:'time',
+            splitNumber:6,
+            axisLabel:{
+              hideOverlap:true,
+              formatter:(v)=>new Date(v).toLocaleTimeString('ko-KR').replace(/:\d{2}$/,'')
+            }
+          },
+          yAxis:{ type:'value', axisLabel:{ formatter:(v)=> unit==='kW'? v.toLocaleString('ko-KR') : v+'℃' } },
+          dataZoom:[
+            { type:'slider', height:14, bottom:8, start:60, end:100 },
+            { type:'inside' }
+          ],
+          series:[{ type:'line', data, showSymbol:false, smooth:0.25, lineStyle:{ width:2 } }]
+        };
+      }
+
+      // 2초 갱신
+      setInterval(()=>{
+        if(!selectedId) return;
+        const dev=DEVICES.find(d=>d.id===selectedId); if(!dev) return;
+
+        dev.uptime=incUptime(dev.uptime,2);
+        if(dev.comm==='정상'){
+          const driftP=(Math.random()*12-6);
+          const driftT=(Math.random()*0.6-0.3);
+          if(dev.status==='ON'){
+            dev.power=Math.max(0,Math.round(dev.power+driftP));
+            dev.temp =Math.max(0,parseFloat((dev.temp+driftT).toFixed(1)));
+            dev.metrics.kwhToday+=Math.max(0,dev.power/1800);
+            dev.metrics.runH+=(2/3600);
+          } else { dev.power=0; }
+        }
+
+        document.getElementById('selPower').textContent=fmt(dev.power);
+        document.getElementById('selTemp').textContent =fmt(dev.temp);
+        document.getElementById('selUpdated').textContent=new Date().toLocaleTimeString('ko-KR');
+        document.getElementById('mKwhToday').textContent=fmt(Math.round(dev.metrics.kwhToday));
+        document.getElementById('mRunHours').textContent=dev.metrics.runH.toFixed(1);
+        document.getElementById('selUptime').textContent=dev.uptime;
+
+        const t=Date.now();
+        seriesPower.push([t,dev.power]); if(seriesPower.length>600) seriesPower.splice(0,seriesPower.length-600);
+        seriesTemp .push([t,dev.temp ]); if(seriesTemp .length>600) seriesTemp .splice(0,seriesTemp .length-600);
+        chartPower.setOption({ series:[{ data: seriesPower }] });
+        chartTemp .setOption({ series:[{ data: seriesTemp  }] });
+      },2000);
+
+      function incUptime(hms,addSec){
+        const [h,m,s]=hms.split(':').map(Number);
+        let total=h*3600+m*60+s+addSec;
+        const hh=Math.floor(total/3600); total%=3600;
+        const mm=Math.floor(total/60);   const ss=total%60;
+        const pad=(n)=>(n<10?'0'+n:''+n);
+        return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+      }
+
+      // 초기 선택
+      selectDevice(DEVICES[0].id);
+    })();
+  </script>
+  
+   <script src="script.js"></script>
+</body>
+</html>

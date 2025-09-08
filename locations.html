@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>위치 대시보드 | Iwell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 전용 -->
+  <link rel="stylesheet" href="locations.css" />
+  <!-- 지도 라이브러리 (Leaflet) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live"><a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>Iwell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+  <!-- 네비게이션(필 버튼) -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip active">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+    </div>
+  </div>
+
+  <!-- 메인: 4×3 -->
+  <main class="grid-4x3">
+    <!-- 대형 지도 (3×3) -->
+    <section class="card card-3x3">
+      <div class="card-header">
+        공장 배치도 / 지도
+        <span class="right-controls">
+          <label for="basemapSel" class="muted">베이스맵</label>
+          <select id="basemapSel" title="베이스맵 선택">
+            <option value="osm">지도</option>
+            <option value="sat">항공</option>
+          </select>
+        </span>
+      </div>
+      <div class="card-body map-body">
+        <div id="map"></div>
+        <div class="map-legend">
+          <span class="dot ok"></span> 통신 정상
+          <span class="dot ng"></span> 통신 이상
+        </div>
+      </div>
+    </section>
+
+    <!-- 우측 상단: 선택 위치 요약 (1×1) -->
+    <aside class="card card-1x1">
+      <div class="card-header">선택 위치 요약</div>
+      <div class="card-body">
+        <div class="kv">
+          <span class="kv-label">이름</span>
+          <span class="kv-value" id="locName">-</span>
+        </div>
+        <div class="kv">
+          <span class="kv-label">구분</span>
+          <span class="kv-value" id="locType">-</span>
+        </div>
+        <div class="kv">
+          <span class="kv-label">설비 수</span>
+          <span class="kv-value" id="locCount">-</span>
+        </div>
+        <div class="divider"></div>
+        <div class="row wrap">
+          <span class="pill">현재 전력 <strong id="locKW">-</strong> kW</span>
+          <span class="pill">금일 사용량 <strong id="locKWH">-</strong> kWh</span>
+          <span class="pill">통신 <strong id="locComm">-</strong></span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 우측 중단: 설비 실시간 상태 (1×1) -->
+    <section class="card card-1x1">
+      <div class="card-header">설비별 실시간 전력 / 상태</div>
+      <div class="card-body">
+        <ul class="list" id="equipList"><!-- JS 렌더 --></ul>
+      </div>
+    </section>
+
+    <!-- 우측 하단: 액션 / 연결 (1×1) -->
+    <section class="card card-1x1">
+      <div class="card-header">빠른 이동</div>
+      <div class="card-body">
+        <div class="quick-links">
+          <a class="nav-chip" href="equipment.html" title="설비 대시보드로 이동">설비 대시보드</a>
+          <a class="nav-chip" href="monitoring.html" title="모니터링 대시보드로 이동">모니터링 대시보드</a>
+          <a class="nav-chip" href="meters.html" title="계측기 대시보드로 이동">계측기 대시보드</a>
+        </div>
+        <p class="muted small">지도의 폴리곤(라인/구역) 또는 마커(계측기)를 클릭하면 요약 정보가 갱신됩니다.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+    (function(){
+      // ===== 시계 =====
+      const clockEl = document.getElementById('datetime');
+      const updClock = ()=> clockEl && (clockEl.textContent = new Date().toLocaleTimeString('ko-KR'));
+      updClock(); setInterval(updClock, 1000);
+
+      // ===== 맵 초기화 =====
+      // 데모 센터(구미 인근) — 실제 좌표/정합은 향후 현장 도면에 맞춰 조정
+      const CENTER = [36.1222, 128.3457];
+
+      const map = L.map('map', { zoomControl: true }).setView(CENTER, 15);
+      // OSM / Esri(항공) 레이어
+      const L_OSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap'
+      });
+      const L_SAT = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 20, attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community' }
+      );
+      L_OSM.addTo(map);
+      document.getElementById('basemapSel').addEventListener('change', (e)=>{
+        const v = e.target.value;
+        if (v==='osm'){ map.addLayer(L_OSM); map.removeLayer(L_SAT); }
+        else { map.addLayer(L_SAT); map.removeLayer(L_OSM); }
+      });
+
+      // ===== 데모 설비 데이터 (마커용) =====
+      const DEV = [
+        { id:'EQ-A-01', name:'성형#1 전력계', type:'전력계',   ll:[36.1234,128.3450], kw:7.8,  kwh:560, comm:'정상' },
+        { id:'EQ-A-02', name:'성형#2 전력계', type:'전력계',   ll:[36.1230,128.3462], kw:5.1,  kwh:430, comm:'정상' },
+        { id:'EQ-B-01', name:'컴프레서#1',   type:'멀티',     ll:[36.1215,128.3439], kw:6.2,  kwh:310, comm:'정상' },
+        { id:'EQ-B-02', name:'칠러#1',      type:'멀티',     ll:[36.1210,128.3451], kw:3.9,  kwh:210, comm:'정상' },
+        { id:'EQ-C-01', name:'도장부스#1',   type:'전력계',   ll:[36.1204,128.3470], kw:4.8,  kwh:390, comm:'정상' },
+        { id:'EQ-C-02', name:'집진기#1',    type:'전력계',   ll:[36.1201,128.3461], kw:2.1,  kwh:180, comm:'이상' },
+      ];
+
+      // ===== 라인/영역(폴리곤) 데모 =====
+      const AREAS = [
+        { id:'AREA-A', name:'라인 A (성형)', type:'라인',  color:'#2563eb',
+          poly:[[36.1240,128.3443],[36.1241,128.3465],[36.1223,128.3468],[36.1221,128.3445]] },
+        { id:'AREA-B', name:'라인 B (압축/냉각)', type:'라인', color:'#059669',
+          poly:[[36.1223,128.3436],[36.1226,128.3456],[36.1206,128.3459],[36.1203,128.3438]] },
+        { id:'AREA-C', name:'라인 C (도장/집진)', type:'라인', color:'#d97706',
+          poly:[[36.1207,128.3460],[36.1210,128.3478],[36.1196,128.3482],[36.1193,128.3462]] },
+      ];
+
+      // ===== 마커 스타일 =====
+      const icon = (ok)=>
+        L.divIcon({
+          className:'micon',
+          html:`<div class="mwrap ${ok?'ok':'ng'}"><span class="dot ${ok?'ok':'ng'}"></span></div>`,
+          iconSize:[18,18], iconAnchor:[9,9]
+        });
+
+      // ===== 선택 상태 / 바인딩 =====
+      let selectedArea = null; // AREA object
+      let selectedList = [];   // 해당 영역의 설비 목록
+
+      const $locName = document.getElementById('locName');
+      const $locType = document.getElementById('locType');
+      const $locCount= document.getElementById('locCount');
+      const $locKW   = document.getElementById('locKW');
+      const $locKWH  = document.getElementById('locKWH');
+      const $locComm = document.getElementById('locComm');
+      const $list    = document.getElementById('equipList');
+
+      function fmt(n){ return (typeof n==='number') ? n.toLocaleString('ko-KR') : n; }
+
+      // 영역 선택 시 요약 업데이트
+      function selectArea(area){
+        selectedArea = area;
+        // 영역 내부 설비 추출(간단히 bbox 포함판정)
+        selectedList = DEV.filter(d => insideBBox(d.ll, area.poly));
+        const sumKW = Math.round(selectedList.reduce((s,d)=> s + d.kw, 0));
+        const sumKWH= Math.round(selectedList.reduce((s,d)=> s + d.kwh, 0));
+        const okCnt = selectedList.filter(d=> d.comm==='정상').length;
+        const commTxt = (okCnt===selectedList.length)? '정상' : (okCnt===0? '이상' : '일부 이상');
+
+        $locName.textContent = area.name;
+        $locType.textContent = area.type;
+        $locCount.textContent= selectedList.length;
+        $locKW.textContent   = fmt(sumKW);
+        $locKWH.textContent  = fmt(sumKWH);
+        $locComm.textContent = commTxt;
+
+        renderEquipList();
+        toast(area.name + ' 선택됨');
+      }
+
+      // 매우 단순한 bbox 포함판정 (데모용)
+      function insideBBox([lat,lng], poly){
+        const lats = poly.map(p=>p[0]), lngs = poly.map(p=>p[1]);
+        const minLa=Math.min(...lats), maxLa=Math.max(...lats);
+        const minLn=Math.min(...lngs), maxLn=Math.max(...lngs);
+        return lat>=minLa && lat<=maxLa && lng>=minLn && lng<=maxLn;
+      }
+
+      function renderEquipList(){
+        $list.innerHTML = '';
+        if (!selectedList.length){
+          $list.innerHTML = '<li class="muted">선택된 영역 내 설비가 없습니다.</li>';
+          return;
+        }
+        selectedList.forEach(d=>{
+          const li = document.createElement('li'); li.className='equip-row';
+          li.innerHTML = `
+            <div class="left">
+              <span class="dot ${d.comm==='정상'?'ok':'ng'}"></span>
+              <span class="title">${d.name}</span>
+              <span class="sub">(${d.id})</span>
+            </div>
+            <div class="right">
+              <span class="kv-mini"><em>kW</em> ${fmt(d.kw)}</span>
+              <span class="kv-mini"><em>kWh</em> ${fmt(d.kwh)}</span>
+              <span class="badge ${d.comm==='정상'?'status-on':'status-off'}">${d.comm}</span>
+            </div>
+          `;
+          li.addEventListener('click', ()=> toast(`${d.name} • ${fmt(d.kw)} kW`));
+          $list.appendChild(li);
+        });
+      }
+
+      function toast(msg){
+        const t = document.getElementById('toast'); t.textContent=msg;
+        t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 1200);
+      }
+
+      // ===== 폴리곤/마커 추가 =====
+      AREAS.forEach(a=>{
+        const poly = L.polygon(a.poly, { color:a.color, weight:2, fillOpacity:0.08 }).addTo(map);
+        poly.on('click', ()=> selectArea(a));
+        poly.bindTooltip(a.name);
+      });
+
+      DEV.forEach(d=>{
+        const m = L.marker(d.ll, { icon: icon(d.comm==='정상') }).addTo(map);
+        m.bindTooltip(`${d.name} (${d.id})`);
+        m.on('click', ()=>{
+          // 마커 클릭 시: 해당 마커가 속한 영역을 찾아 선택
+          const area = AREAS.find(a=> insideBBox(d.ll, a.poly));
+          if (area) selectArea(area);
+          else toast(`${d.name} 선택됨`);
+        });
+        d._marker = m; // 참조 저장(상태 갱신용)
+      });
+
+      // 초기 선택
+      selectArea(AREAS[0]);
+
+      // ===== 실시간 드리프트(3초) =====
+      setInterval(()=>{
+        DEV.forEach(d=>{
+          // 통신 상태 랜덤 토글(낮은 확률)
+          if (d.comm==='정상' && Math.random()<0.02) d.comm='이상';
+          else if (d.comm==='이상' && Math.random()<0.06) d.comm='정상';
+          // 전력/사용량 드리프트
+          if (d.comm==='정상'){
+            d.kw  = Math.max(0, +(d.kw + (Math.random()-0.5)*0.6).toFixed(2));
+            d.kwh += Math.max(0, d.kw/1200);
+          }
+          // 마커 색상 반영
+          d._marker.setIcon(icon(d.comm==='정상'));
+        });
+        // 선택 영역 요약 & 리스트 갱신
+        if (selectedArea) selectArea(selectedArea);
+      }, 3000);
+
+      // ===== 레이아웃 높이 맞춤 (스크롤 방지) =====
+      function fitMainHeight(){
+        const main = document.querySelector('main.grid-4x3');
+        const header = document.querySelector('header');
+        const nav = document.querySelector('.sub-banner.nav-banner');
+        if (!main) return;
+        const h = window.innerHeight - (header?header.offsetHeight:0) - (nav?nav.offsetHeight:0);
+        main.style.height = h + 'px';
+      }
+      window.addEventListener('load', fitMainHeight);
+      window.addEventListener('resize', fitMainHeight);
+    })();
+  </script>
+  
+   <script src="script.js"></script>
+</body>
+</html>

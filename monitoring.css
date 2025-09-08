@@ -1,0 +1,60 @@
+/* ===== 4×3 그리드: 정확히 화면 내에 고정 ===== */
+.grid-4x3{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(3,1fr);
+  gap:12px;
+  padding:12px;
+  height:400px;          /* JS에서 정확 값으로 덮어씀(fitMainHeight) */
+}
+.card-full{ grid-column:1/-1; grid-row:1/-1; }
+.grid-4x3 .card{ min-height:0; display:flex; flex-direction:column; }
+.grid-4x3 .card .card-body{ min-height:0; overflow:hidden; position:relative; }
+
+/* 네비(필 버튼) */
+.sub-banner.nav-banner{ background:#fff; border-bottom:1px solid #ddd; padding:0!important; }
+.sub-banner.nav-banner .info{ display:flex; gap:10px; padding:12px; align-items:center; overflow-x:auto; scrollbar-width:thin; }
+.sub-banner.nav-banner .label, .sub-banner.nav-banner .stat-block{ display:none!important; }
+.nav-chip{ flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; padding:8px 18px; min-width:160px; border:1px solid #e0e0e0; background:#f8f9fb; color:#333; border-radius:9999px; text-decoration:none; font-size:.92rem; font-weight:600; white-space:nowrap; }
+.nav-chip:hover{ background:#eef2f7; }
+.nav-chip.active{ border-color:#0b5fff; color:#0b5fff; background:#f4f8ff; }
+
+/* 레전드 */
+.legend{
+  position:absolute; right:12px; top:8px; z-index:2;
+  background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+  padding:6px 10px; display:flex; align-items:center; gap:10px;
+  font-size:.9rem; color:#333;
+}
+.legend .swatch{ display:inline-block; width:22px; height:4px; border-radius:2px; margin-right:4px; }
+.link-ok{ background:#10b981; }
+.link-fault{ background:#ef4444; }
+.pill{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:9999px; font-weight:700; border:1px solid transparent; font-size:.8rem; }
+.pill.on{ color:#059669; border-color:#c3f0d3; background:#eafff3; }
+.pill.off{ color:#e11d48; border-color:#f9c2cd; background:#fff0f3; }
+.legend .sep{ color:#c0c4cc; }
+
+/* 토폴로지 */
+.topology-wrap{ position:relative; width:100%; height:100%; padding:8px; }
+#topologySvg{ width:100%; height:100%; display:block; }
+
+/* 링크 */
+.link{ fill:none; stroke-width:2.5; }
+.link.ok{ stroke:#10b981; stroke-dasharray:6 10; animation:flow 2.2s linear infinite; }
+.link.fault{ stroke:#ef4444; stroke-dasharray:8 6; }
+@keyframes flow{ from{stroke-dashoffset:0;} to{stroke-dashoffset:-200;} }
+
+/* 노드 */
+.node .node-bg{ fill:#fff; stroke:#e5e7eb; stroke-width:1.25; }
+.node .icon-stroke, .node line{ stroke:#7c8aa5; stroke-width:1.5; fill:none; }
+.node .node-text{ font-family:"Noto Sans",sans-serif; font-size:12.5px; fill:#333; }
+.node.on .node-bg{ filter:drop-shadow(0 0 .6px rgba(16,185,129,.35)); }
+.node.off .icon-stroke, .node.off line{ stroke:#e11d48; }
+.node.off .node-text{ fill:#e11d48; }
+
+/* 툴팁 */
+.topo-tip{
+  position:fixed; z-index:10; background:#111; color:#fff; padding:6px 8px;
+  border-radius:6px; font-size:.85rem; pointer-events:none; white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.18); opacity:.96;
+}

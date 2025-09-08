@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>데이터 그리드 | Iwell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 전용 -->
+  <link rel="stylesheet" href="analysis-grid.css" />
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live"><a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+
+  <!-- Drawer Menu -->
+  <div class="drawer-overlay" id="drawerOv"></div>
+  <nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+    <div class="drawer-header">
+      <div class="brand">
+        <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+        <span>Iwell 메뉴</span>
+      </div>
+      <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+    </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+  </nav>
+
+  <!-- 네비 칩 -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip active">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+    </div>
+  </div>
+
+  <!-- 메인 4×3 -->
+  <main class="grid-4x3">
+    <!-- 좌측: 조건/트리 -->
+    <aside class="card card-1x3">
+      <div class="card-header">조건 / 설비 선택</div>
+      <div class="card-body">
+        <div class="toolbox">
+          <!-- 지표 -->
+          <div class="input-row">
+            <label>지표</label>
+            <div class="chips" id="metricChips">
+              <button class="chip active" data-v="kw">전력(kW)</button>
+              <button class="chip" data-v="a">전류(A)</button>
+              <button class="chip" data-v="pf">역률(PF)</button>
+              <button class="chip" data-v="thd">고조파 THD(%)</button>
+            </div>
+          </div>
+
+          <!-- 날짜(달력형) -->
+          <div class="date-row one-line">
+            <div class="date-cell">
+              <span>날짜</span>
+              <input type="date" id="pickDay">
+            </div>
+          </div>
+
+          <!-- 버튼: Search -->
+          <div class="btnrow">
+            <button class="btn primary" id="btnSearch">Search</button>
+          </div>
+          <!-- 버튼: CSV (다른 줄) -->
+          <div class="btnrow">
+            <button class="btn" id="btnCsv">CSV 다운로드</button>
+          </div>
+
+          <div class="hint muted small">트리에서 선택된 설비만 표시. 선택이 없으면 전체 표시.</div>
+        </div>
+
+        <!-- 트리 -->
+        <div class="tree-search">
+          <input type="text" id="treeSearch" placeholder="위치/공장/라인/파트/설비 검색" />
+          <div class="btnrow">
+            <button class="btn" id="btnExpandAll">전체 펼치기</button>
+            <button class="btn" id="btnCollapseAll">전체 접기</button>
+            <button class="btn" id="btnClearSel">선택 해제</button>
+          </div>
+        </div>
+        <ul class="tree" id="equipTree"><!-- JS 렌더 --></ul>
+      </div>
+    </aside>
+
+    <!-- 우측: 시간 그리드 -->
+    <section class="card card-3x3">
+      <div class="card-header">
+        시간별 값 (00~23시)
+        <span class="right small muted" id="gridMeta">-</span>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap grid-wrap">
+          <table class="grid" id="gridTable">
+            <thead>
+              <tr id="gridHead"><!-- JS --></tr>
+            </thead>
+            <tbody id="gridBody"><!-- JS --></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+  (function(){
+    // ===== 시계 =====
+    const clockEl = document.getElementById('datetime');
+    const updClock = ()=> clockEl && (clockEl.textContent = new Date().toLocaleTimeString('ko-KR'));
+    updClock(); setInterval(updClock, 1000);
+
+    // ===== 설비 데이터 정의 =====
+    const LOC = '네오플라테크';
+    const DEVICES = [
+      { factory:'공장A', line:'라인1', part:'성형', equip:'프레스1',  id:'A-L1-PR1' },
+      { factory:'공장A', line:'라인1', part:'성형', equip:'프레스2',  id:'A-L1-PR2' },
+      { factory:'공장A', line:'라인2', part:'압축', equip:'컴프레서1', id:'A-L2-CM1' },
+      { factory:'공장A', line:'라인2', part:'냉각', equip:'칠러1',    id:'A-L2-CH1' },
+      { factory:'공장B', line:'조립',   part:'피킹', equip:'로봇암1',  id:'B-ASM-RB1' },
+      { factory:'공장B', line:'조립',   part:'피킹', equip:'로봇암2',  id:'B-ASM-RB2' },
+      { factory:'공장B', line:'조립',   part:'이송', equip:'컨베이어1',id:'B-ASM-CV1' },
+      { factory:'공장B', line:'도장',   part:'부스', equip:'도장부스1', id:'B-PTG-BS1' },
+      { factory:'공장C', line:'열처리', part:'건조', equip:'건조로1',  id:'C-HT-DY1' },
+      { factory:'공장C', line:'열처리', part:'집진', equip:'집진기1',  id:'C-HT-DP1' },
+    ];
+    const HOURS = Array.from({length:24}, (_,i)=> String(i).padStart(2,'0'));
+
+    // ===== 유틸 =====
+    const pad = n => String(n).padStart(2,'0');
+    function ymd(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+
+    // ===== 트리 구성 =====
+    const treeRoot = document.getElementById('equipTree');
+    function groupBy(arr, fn){ return arr.reduce((m,x)=> ((m[fn(x)]??=[]).push(x), m), {}); }
+    function mkFold(label){
+      const li=document.createElement('li');
+      const row=document.createElement('div'); row.className='node';
+      row.innerHTML = `<span class="toggle">−</span><span class="label">${label}</span>`;
+      li.appendChild(row); return li;
+    }
+    function buildTree(){
+      treeRoot.innerHTML = '';
+      const liRoot = document.createElement('li');
+      const node = document.createElement('div'); node.className='node';
+      node.innerHTML = `<span class="toggle">−</span><span class="label">${LOC}</span>`;
+      liRoot.appendChild(node);
+      const ulF = document.createElement('ul'); ulF.className='subtree'; liRoot.appendChild(ulF);
+
+      const byFactory = groupBy(DEVICES, d=>d.factory);
+      for(const [f, arrF] of Object.entries(byFactory)){
+        const liF = mkFold(f); ulF.appendChild(liF);
+        const ulL = document.createElement('ul'); ulL.className='subtree'; liF.appendChild(ulL);
+        const byLine = groupBy(arrF, d=>d.line);
+        for(const [l, arrL] of Object.entries(byLine)){
+          const liL = mkFold(l); ulL.appendChild(liL);
+          const ulP = document.createElement('ul'); ulP.className='subtree'; liL.appendChild(ulP);
+          const byPart = groupBy(arrL, d=>d.part);
+          for(const [p, aP] of Object.entries(byPart)){
+            const liP = mkFold(p); ulP.appendChild(liP);
+            const ulE = document.createElement('ul'); ulE.className='subtree'; liP.appendChild(ulE);
+            aP.forEach(d=>{
+              const leaf = document.createElement('li');
+              const lb = document.createElement('label'); lb.className='leaf';
+              const cb = document.createElement('input'); cb.type='checkbox'; cb.value=d.id;
+              cb.addEventListener('change', renderGrid);
+              lb.appendChild(cb);
+              const txt = document.createElement('span');
+              txt.textContent = `${d.equip} (${d.id})`;
+              lb.appendChild(txt); leaf.appendChild(lb); ulE.appendChild(leaf);
+            });
+          }
+        }
+      }
+      treeRoot.appendChild(liRoot);
+      // 토글
+      treeRoot.querySelectorAll('.node').forEach(n=>{
+        n.addEventListener('click', ()=>{
+          const st = n.parentElement.querySelector(':scope > .subtree');
+          if(!st) return;
+          const open = st.style.display===''||st.style.display==='block';
+          st.style.display = open ? 'none' : 'block';
+          n.querySelector('.toggle').textContent = open ? '+' : '−';
+        });
+      });
+    }
+    buildTree();
+
+    function toggleAll(open){
+      treeRoot.querySelectorAll('.subtree').forEach(s=> s.style.display=open?'block':'none');
+      treeRoot.querySelectorAll('.toggle').forEach(t=> t.textContent = open?'−':'+');
+    }
+    document.getElementById('btnExpandAll').addEventListener('click', ()=> toggleAll(true));
+    document.getElementById('btnCollapseAll').addEventListener('click', ()=> toggleAll(false));
+    document.getElementById('btnClearSel').addEventListener('click', ()=>{
+      treeRoot.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked=false);
+      renderGrid();
+    });
+    document.getElementById('treeSearch').addEventListener('input', (e)=>{
+      const q = e.target.value.trim();
+      treeRoot.querySelectorAll('li').forEach(li=> li.style.display='');
+      if(!q) return;
+      const labels = treeRoot.querySelectorAll('.node .label, .leaf span');
+      labels.forEach(l=>{
+        const li = l.closest('li');
+        li.style.display = l.textContent.includes(q) ? '' : 'none';
+      });
+    });
+
+    // ===== 컨트롤 =====
+    const elDay   = document.getElementById('pickDay');
+    const gridMeta = document.getElementById('gridMeta');
+
+    // 기본 날짜 = 오늘
+    const today = new Date(); elDay.value = ymd(today);
+    document.getElementById('btnSearch').addEventListener('click', renderGrid);
+
+    // ===== 그리드 =====
+    const theadRow = document.getElementById('gridHead');
+    const tbody    = document.getElementById('gridBody');
+
+    // 헤더 00~23 + 평균 + 합계
+    (function buildHead(){
+      theadRow.innerHTML = '';
+      const th0 = document.createElement('th'); th0.className='sticky-col'; th0.textContent='설비/계측기';
+      theadRow.appendChild(th0);
+      HOURS.forEach(h=>{
+        const th=document.createElement('th'); th.textContent=h; theadRow.appendChild(th);
+      });
+      const thAvg = document.createElement('th'); thAvg.className='total'; thAvg.textContent='평균';
+      const thSum = document.createElement('th'); thSum.className='total'; thSum.textContent='합계';
+      theadRow.appendChild(thAvg); theadRow.appendChild(thSum);
+    })();
+
+    function selectedDevices(){
+      const ids = [...treeRoot.querySelectorAll('input[type=checkbox]:checked')].map(cb=> cb.value);
+      if (!ids.length) return DEVICES;
+      return DEVICES.filter(d=> ids.includes(d.id));
+    }
+
+    // 더미 24시간 생성 + 오늘/미래 0 처리
+    function synth24(metric, baseKW, baseDate){
+      const now = new Date();
+      now.setSeconds(0,0); // 분 단위 비교 안정화
+      const out = [];
+      for(let h=0; h<24; h++){
+        const t = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, 0, 0, 0);
+        const isFuture = t.getTime() > now.getTime();
+        if (isFuture){ out.push(0); continue; }
+        const diurnal = 0.6 + 0.6 * Math.sin(((h-7)/24)*2*Math.PI);
+        const rnd = (Math.random()-0.5)*0.18;
+        let v;
+        switch(metric){
+          case 'kw': v = Math.max(0.1, baseKW * (diurnal + rnd)); break;
+          case 'a':  v = Math.max(0.1, baseKW * 2.1 * (diurnal + rnd)); break;
+          case 'pf': v = Math.min(1.0, Math.max(0.75, 0.9 + rnd*0.6)); break;
+          case 'thd':v = Math.max(1.5, 6 + (Math.random()-0.5)*6); break;
+        }
+        out.push(+v.toFixed(metric==='pf'?3:2));
+      }
+      return out;
+    }
+    const avgOf = (arr, metric) => +( (arr.reduce((s,v)=>s+v,0) / (arr.length||1)).toFixed(metric==='pf'?3:2) );
+    const sumOf = (arr) => +( arr.reduce((s,v)=>s+v,0).toFixed(2) );
+
+    function addGroupRow(label){
+      const tr=document.createElement('tr'); tr.className='group';
+      const td=document.createElement('td'); td.className='sticky-col'; td.textContent=label;
+      tr.appendChild(td);
+      for(let i=0;i<24;i++){ tr.appendChild(document.createElement('td')); }
+      const tdAvg=document.createElement('td'); tdAvg.className='total'; tr.appendChild(tdAvg);
+      const tdSum=document.createElement('td'); tdSum.className='total'; tr.appendChild(tdSum);
+      tbody.appendChild(tr);
+    }
+    function addDeviceRow(title, values, metric){
+      const tr=document.createElement('tr');
+      const td0=document.createElement('td'); td0.className='sticky-col indent'; td0.textContent='— ' + title;
+      tr.appendChild(td0);
+      values.forEach(v=>{
+        const td=document.createElement('td'); td.className='num'; td.textContent=v; tr.appendChild(td);
+      });
+      const tdAvg=document.createElement('td'); tdAvg.className='num total'; tdAvg.textContent = avgOf(values, metric);
+      const tdSum=document.createElement('td'); tdSum.className='num total'; tdSum.textContent = sumOf(values);
+      tr.appendChild(tdAvg); tr.appendChild(tdSum);
+      tbody.appendChild(tr);
+    }
+
+    function currentMetric(){ return document.querySelector('#metricChips .chip.active').dataset.v; }
+    function selectedBaseDate(){
+      const d = new Date(elDay.value || ymd(new Date()));
+      d.setHours(0,0,0,0); return d;
+    }
+
+    function renderGrid(){
+      // 메타
+      const metric = currentMetric();
+      const base = selectedBaseDate();
+      const metaWhen = ymd(base);
+      gridMeta.textContent = `지표: ${({kw:'전력(kW)', a:'전류(A)', pf:'역률(PF)', thd:'THD(%)'})[metric]} · 기준: ${metaWhen}`;
+
+      // 선택(or 전체)
+      const list = selectedDevices();
+
+      // 본문 렌더
+      tbody.innerHTML = '';
+      const byF = groupBy(list, d=>d.factory);
+      for(const [f, aF] of Object.entries(byF)){
+        addGroupRow(`${f}`);
+        const byL = groupBy(aF, d=>d.line);
+        for(const [l, aL] of Object.entries(byL)){
+          addGroupRow(`└ ${f} · ${l}`);
+          const byP = groupBy(aL, d=>d.part);
+          for(const [p, aP] of Object.entries(byP)){
+            addGroupRow(`└ ${f} · ${l} · ${p}`);
+            aP.forEach(d=>{
+              const baseKW = 200 + Math.random()*600;
+              const vals = synth24(metric, baseKW, base);
+              addDeviceRow(`${d.factory} · ${d.line} · ${d.part} · ${d.equip}`, vals, metric);
+            });
+          }
+        }
+      }
+    }
+
+    // 지표 칩
+    const chips = wrapId => Array.from(document.querySelectorAll('#'+wrapId+' .chip'));
+    function setActive(wrapId, btn){
+      chips(wrapId).forEach(b=> b.classList.remove('active')); btn.classList.add('active');
+    }
+    chips('metricChips').forEach(btn=> btn.addEventListener('click', ()=>{ setActive('metricChips', btn); renderGrid(); }));
+
+    // CSV
+    document.getElementById('btnCsv').addEventListener('click', ()=>{
+      const rows = [];
+      const head = ['설비/계측기', ...HOURS, '평균', '합계'];
+      rows.push(head.join(','));
+      [...tbody.querySelectorAll('tr')].forEach(tr=>{
+        const cols = [...tr.children].map(td=> `"${td.textContent.replace(/"/g,'""')}"`);
+        rows.push(cols.join(','));
+      });
+      if (rows.length<=1){ showToast('다운로드할 데이터가 없습니다. 먼저 Search를 실행하세요.'); return; }
+      const blob=new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download='data-grid.csv'; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    // 초기 렌더
+    renderGrid();
+
+    // 레이아웃 높이 보정
+    function fitMainHeight(){
+      const main = document.querySelector('main.grid-4x3');
+      const header = document.querySelector('header');
+      const nav = document.querySelector('.sub-banner.nav-banner');
+      if (!main) return;
+      const h = window.innerHeight - (header?header.offsetHeight:0) - (nav?nav.offsetHeight:0);
+      main.style.height = h + 'px';
+    }
+    window.addEventListener('load', fitMainHeight);
+    window.addEventListener('resize', fitMainHeight);
+
+    function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1200); }
+  })();
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>

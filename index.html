@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>아이웰 모니터링 시스템</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <!-- 보조 스타일: 그리드/차트 높이 등 (필요 최소한) -->
+    <style>
+      body { font-family: "Noto Sans", sans-serif; }
+      main {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: 180px;
+        gap: 12px;
+        padding: 12px;
+      }
+      .card { background: #fff; border: 1px solid #ddd; border-radius: 2px; display: flex; flex-direction: column; overflow: hidden; }
+      .card-header { padding: 0.6rem 0.8rem; font-size: 1.1rem; font-weight: 600; color: #444; border-bottom: 1px solid #ccc; background: #fff; }
+      .card-body { padding: 0.8rem; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+      .card-1x1 { grid-column: span 1; grid-row: span 1; }
+      .card-2x1 { grid-column: span 2; grid-row: span 1; }
+      .card-1x2 { grid-column: span 1; grid-row: span 2; }
+      .card-2x2 { grid-column: span 2; grid-row: span 2; }
+
+      .kpi-wrap { display: flex; flex-direction: column; gap: 4px; }
+      .kpi-value { font-size: 2.2rem; font-weight: 700; color: #222; line-height: 1.2; }
+      .kpi-sub { font-size: 0.95rem; color: #666; }
+      .kpi-updated { font-size: 0.85rem; color: #888; }
+
+      .chart-box { position: relative; width: 100%; height: 230px; }      /* 큰 차트 (2x2) */
+      .chart-mini { position: relative; width: 100%; height: 140px; }     /* 1x1 / 2x1 */
+      .chart-tall { position: relative; width: 100%; height: 260px; }     /* 1x2 */
+
+      .row { display: flex; align-items: center; gap: 8px; }
+      .muted { color: #666; font-size: 0.9rem; }
+      .tag { font-size: 0.8rem; background: #f3f3f3; border: 1px solid #e3e3e3; padding: 2px 6px; border-radius: 4px; }
+      .ok { color: #1a7f37; }
+      .warn { color: #b54708; }
+      .bad { color: #b42318; }
+      .link { color: #0b5fff; text-decoration: none; }
+
+      /* 헤더/서브배너는 기존 style.css 그대로 사용한다고 가정 */
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-left">
+        <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" alt="Menu" class="icon" />
+        <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" />
+        Iwell 모니터링 시스템
+      </div>
+      <div class="header-right">
+        <span id="datetime">--:--:--</span>
+        <img src="assets/images/live.png" alt="live" class="icon live-icon" /><a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+      </div>
+    </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>IWell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+    <!-- 헤더 밑 알람 띠 -->
+    <div class="sub-banner">
+      <div class="info">
+        <span class="label">2025-07</span>
+        <div class="stat-block">
+          <span class="stat-title">전력사용량</span>
+          <span class="stat-value">471,304 kWh</span>
+          <span class="badge negative">전월대비 4% 낮음</span>
+        </div>
+        <div class="stat-block">
+          <span class="stat-title">온실가스 배출량</span>
+          <span class="stat-value">225.33 tCO2</span>
+          <span class="badge negative">전월대비 4% 낮음</span>
+        </div>
+        <div class="stat-block">
+          <span class="stat-title">전력사용량</span>
+          <span class="stat-value">118,957,129 원</span>
+          <span class="badge negative">전월대비 4% 낮음</span>
+        </div>
+      </div>
+    </div>
+
+    <main>
+      <!-- (1) 1x1: 실시간 전력 (현재 kW) -->
+      <div class="card card-1x1" id="card-now-kw">
+        <div class="card-header">실시간 전력 (kW)</div>
+        <div class="card-body">
+          <div class="row">
+            <div class="kpi-value" id="nowKw">--</div>
+            <span class="tag" id="nowKwDelta">전일 동시간대 대비 --%</span>
+          </div>
+          <div class="muted">10초마다 업데이트</div>
+        </div>
+      </div>
+
+      <!-- (2) 2x1: 월간 에너지 사용 패턴 (Bar) -->
+      <div class="card card-2x1" id="card-monthly">
+        <div class="card-header">월간 에너지 사용 패턴 (kWh)</div>
+        <div class="card-body">
+          <div class="chart-mini" id="monthlyChart"></div>
+          <div class="muted">목표 초과일 강조</div>
+        </div>
+      </div>
+
+      <!-- (3) 1x1: TOE / CO₂ -->
+      <div class="card card-1x1" id="card-toe-co2">
+        <div class="card-header">TOE / CO₂ 환산</div>
+        <div class="card-body">
+          <div class="row"><span class="muted">TOE</span><div class="kpi-value" id="toeVal">--</div></div>
+          <div class="row"><span class="muted">CO₂</span><div class="kpi-value" id="co2Val">--</div><span class="muted">t</span></div>
+          <div class="muted">* 가정: 1 toe = 11,630 kWh, 배출계수 ≈ 0.45 kg/kWh</div>
+        </div>
+      </div>
+
+      <!-- (4) 2x2: 금일 총 전력사용량 (kWh) -->
+      <div class="card card-2x2" id="card-daily-energy">
+        <div class="card-header">금일 총 전력사용량 (kWh)</div>
+        <div class="card-body">
+          <div class="kpi-wrap">
+            <div class="kpi-value" id="totalEnergy">--</div>
+            <div class="kpi-sub"><span id="deltaEnergy">+0</span> kWh </div>
+            <div class="kpi-updated" id="lastUpdated">업데이트: -</div>
+          </div>
+          <div class="chart-box" id="energyChart"></div>
+        </div>
+      </div>
+
+      <!-- (5) 1x2: 실시간 사용 패턴 (24h Sparkline) -->
+      <div class="card card-1x2" id="card-pattern">
+        <div class="card-header">실시간 사용 패턴 (24h)</div>
+        <div class="card-body">
+          <div class="chart-tall" id="patternChart"></div>
+          <div class="muted">마지막 24시간 추이</div>
+        </div>
+      </div>
+
+      <!-- (6) 1x1: 오늘의 피크 전력 -->
+      <div class="card card-1x1" id="card-peak">
+        <div class="card-header">오늘의 피크 전력</div>
+        <div class="card-body">
+          <div class="kpi-value" id="peakKw">--</div>
+          <div class="row">
+            <span class="muted">발생시각</span>
+            <span id="peakTime" class="tag">--:--:--</span>
+          </div>
+          <div class="row">
+            <span class="muted">목표 대비</span>
+            <span id="peakPct" class="tag">--%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- (7) 1x1: 알람 현황 -->
+      <div class="card card-1x1" id="card-alarms">
+        <div class="card-header">알람 현황</div>
+        <div class="card-body">
+          <div class="row"><span class="muted">오늘 발생</span><div class="kpi-value" id="alarmToday">3</div></div>
+          <div class="row"><span class="muted">활성 알람</span><div class="kpi-value bad" id="alarmActive">1</div></div>
+          <a href="#" class="link">알람 히스토리 보기</a>
+        </div>
+      </div>
+    </main>
+
+    <!-- 공통 스크립트(있다면 유지) -->
+    <script src="script.js"></script>
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+    <!-- 대시보드 스크립트 -->
+    <script>
+      (function () {
+        // ===== 시계 =====
+        const clockEl = document.getElementById("datetime");
+        function updateClock() { if (clockEl) clockEl.textContent = new Date().toLocaleTimeString("ko-KR"); }
+        updateClock(); setInterval(updateClock, 1000);
+
+        // ===== 유틸 =====
+        const fmt = (n) => n.toLocaleString("ko-KR");
+        const pad2 = (n) => (n < 10 ? "0" + n : "" + n);
+
+        // ===== 서브배너 kWh 동기화 (kWh 라인만 갱신) =====
+        function setBannerEnergyKwh(val) {
+          const blocks = document.querySelectorAll(".sub-banner .stat-block");
+          for (const b of blocks) {
+            const title = b.querySelector(".stat-title")?.textContent?.trim() || "";
+            const valueEl = b.querySelector(".stat-value");
+            if (title.includes("전력사용량") && /kWh/i.test(valueEl?.textContent || "")) {
+              valueEl.textContent = fmt(val) + " kWh";
+              break;
+            }
+          }
+        }
+
+        // ===== 전역 상태 =====
+        const START_TOTAL = 81250;         // 금일 누적 시작
+        const TICK_MS = 1000;              // 1초마다 증가
+        const INC_MIN = 1, INC_MAX = 5;    // 초당 증가폭
+        let total = START_TOTAL;
+
+        // 실시간 kW (10초 주기), 전일 동시간대 대비% 가짜 비교값
+        let nowKw = 820;                   // 현재 kW 가정 시작
+        let yesterdayKwSameTime = 800;     // 비교 기준(가짜)
+        const NOWKW_MIN = 600, NOWKW_MAX = 1200;
+
+        // 피크 전력
+        const PEAK_GOAL = 1200;            // 목표 피크 kW
+        let peakKw = 0;
+        let peakTime = "--:--:--";
+
+        // ===== DOM =====
+        const $total = document.getElementById("totalEnergy");
+        const $delta = document.getElementById("deltaEnergy");
+        const $updated = document.getElementById("lastUpdated");
+        const $nowKw = document.getElementById("nowKw");
+        const $nowKwDelta = document.getElementById("nowKwDelta");
+        const $toeVal = document.getElementById("toeVal");
+        const $co2Val = document.getElementById("co2Val");
+        const $peakKw = document.getElementById("peakKw");
+        const $peakTime = document.getElementById("peakTime");
+        const $peakPct = document.getElementById("peakPct");
+
+        // 초기 렌더
+        function renderTotals(initial=false, inc=0) {
+          if ($total) $total.textContent = fmt(total);
+          if ($delta) $delta.textContent = "+" + fmt(inc);
+          if ($updated) $updated.textContent = "업데이트: " + new Date().toLocaleTimeString("ko-KR");
+          setBannerEnergyKwh(total);
+
+          // TOE / CO2 (대략값)
+          const toe = total / 11630;                // toe
+          const co2 = total * 0.45 / 1000;          // tCO2 (0.45 kg/kWh 가정)
+          if ($toeVal) $toeVal.textContent = toe.toFixed(2);
+          if ($co2Val) $co2Val.textContent = co2.toFixed(2);
+        }
+        renderTotals(true, 0);
+
+        // ===== (4) 2x2: 금일 총 전력 사용량 차트 =====
+        const energyChart = echarts.init(document.getElementById("energyChart"));
+        const energyData = (() => {
+          const arr = [];
+          const now = Date.now();
+          for (let i = 29; i >= 0; i--) { arr.push([now - i * TICK_MS, total - i * 3]); }
+          return arr;
+        })();
+        energyChart.setOption({
+          tooltip: { trigger: "axis", valueFormatter: (v) => fmt(v) + " kWh" },
+          grid: { left: 64, right: 16, top: 16, bottom: 28 },
+          xAxis: {
+            type: "time",
+            axisLabel: {
+              formatter: (val) => new Date(val).toLocaleTimeString("ko-KR").replace(/:\d{2}$/, ""),
+              color: "#444", margin: 12
+            }
+          },
+          yAxis: {
+            type: "value",
+            min: function (value) {
+              const FLOOR = 80000, PADDING = 150;
+              return Math.max(FLOOR, Math.floor(value.max - PADDING));
+            },
+            max: function (value) { const HEAD = 10; return Math.ceil(value.max + HEAD); },
+            scale: true,
+            axisLabel: { formatter: (v) => fmt(v), color: "#444", margin: 12 },
+            splitLine: { show: true }
+          },
+          series: [{ type: "line", showSymbol: false, smooth: 0.3, lineStyle: { width: 2 }, data: energyData }]
+        });
+
+        // ===== (2) 2x1: 월간 패턴 (Bar) =====
+        const monthlyChart = echarts.init(document.getElementById("monthlyChart"));
+        const nowD = new Date();
+        const year = nowD.getFullYear(), month = nowD.getMonth() + 1;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const target = 16000; // 목표선(예시)
+        const monthlyVals = Array.from({ length: daysInMonth }, (_, i) => {
+          const base = 14000 + Math.round(Math.random() * 4000);
+          return base;
+        });
+        monthlyChart.setOption({
+          tooltip: { trigger: "axis", valueFormatter: (v) => fmt(v) + " kWh" },
+          grid: { left: 40, right: 16, top: 16, bottom: 24 },
+          xAxis: { type: "category", data: Array.from({ length: daysInMonth }, (_, i) => (i + 1) + "일"), axisLabel: { interval: 2 } },
+          yAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v) } },
+          series: [
+            {
+              type: "bar",
+              data: monthlyVals.map(v => ({ value: v, itemStyle: v > target ? { color: "#d9534f" } : undefined }))
+            },
+            {
+              type: "line",
+              data: monthlyVals, showSymbol: false, smooth: 0.3, lineStyle: { width: 1.5 }
+            }
+          ],
+          markLine: { data: [{ yAxis: target }], symbol: "none", lineStyle: { type: "dashed" } }
+        });
+
+        // ===== (5) 1x2: 24h 실시간 패턴 =====
+        const patternChart = echarts.init(document.getElementById("patternChart"));
+        const patternData = (() => {
+          const arr = [];
+          const stepMs = 60 * 1000; // 1분 간격
+          const now = Date.now();
+          for (let i = 119; i >= 0; i--) {
+            const t = now - i * stepMs;
+            const base = 600 + (Math.sin((i / 10)) * 50) + Math.random() * 40;
+            arr.push([t, Math.round(base)]);
+          }
+          return arr;
+        })();
+        patternChart.setOption({
+          tooltip: { trigger: "axis", valueFormatter: (v) => fmt(v) + " kW" },
+          grid: { left: 48, right: 12, top: 16, bottom: 28 },
+          xAxis: {
+            type: "time",
+            axisLabel: { formatter: (val) => new Date(val).toLocaleTimeString("ko-KR").replace(/:\d{2}$/, "") }
+          },
+          yAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v) } },
+          series: [{ type: "line", data: patternData, showSymbol: false, smooth: 0.25, lineStyle: { width: 2 } }]
+        });
+
+        // ===== (1) 실시간 kW 박스 (10초마다) =====
+        function updateNowKw() {
+          const prev = nowKw;
+          nowKw = Math.floor(Math.random() * (NOWKW_MAX - NOWKW_MIN + 1)) + NOWKW_MIN;
+          if ($nowKw) $nowKw.textContent = fmt(nowKw);
+
+          const pct = ((nowKw - yesterdayKwSameTime) / yesterdayKwSameTime) * 100;
+          if ($nowKwDelta) {
+            const text = (pct >= 0 ? "+" : "") + pct.toFixed(1) + "%";
+            $nowKwDelta.textContent = "전일 동시간대 대비 " + text;
+            $nowKwDelta.className = "tag " + (pct >= 0 ? "bad" : "ok");
+          }
+
+          // 피크 갱신
+          if (nowKw > peakKw) {
+            peakKw = nowKw;
+            const dt = new Date();
+            peakTime = `${pad2(dt.getHours())}:${pad2(dt.getMinutes())}:${pad2(dt.getSeconds())}`;
+            if ($peakKw) $peakKw.textContent = fmt(peakKw) + " kW";
+            if ($peakTime) $peakTime.textContent = peakTime;
+            const pctGoal = (peakKw / PEAK_GOAL) * 100;
+            if ($peakPct) $peakPct.textContent = pctGoal.toFixed(0) + "%";
+          }
+
+          // 24h 패턴의 마지막 포인트도 살짝 반영 (시각화 자연스러움)
+          const lastT = Date.now();
+          patternData.push([lastT, nowKw]);
+          if (patternData.length > 240) patternData.splice(0, patternData.length - 240);
+          patternChart.setOption({ series: [{ data: patternData }] });
+        }
+        updateNowKw();
+        setInterval(updateNowKw, 10000);
+
+        // ===== 메인 틱: 금일 총 사용량(초당) =====
+        function tick() {
+          const inc = Math.floor(Math.random() * (INC_MAX - INC_MIN + 1)) + INC_MIN;
+          total += inc;
+          renderTotals(false, inc);
+
+          // 누적 라인 차트 갱신
+          energyData.push([Date.now(), total]);
+          if (energyData.length > 180) energyData.splice(0, energyData.length - 180);
+          energyChart.setOption({ series: [{ data: energyData }] });
+        }
+        setInterval(tick, TICK_MS);
+
+        // 리사이즈
+        window.addEventListener("resize", () => {
+          energyChart.resize();
+          monthlyChart.resize();
+          patternChart.resize();
+        });
+      })();
+    </script>
+  </body>
+</html>

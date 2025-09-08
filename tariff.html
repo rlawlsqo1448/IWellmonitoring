@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>요금 분석 | Iwell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 전용 -->
+  <link rel="stylesheet" href="tariff.css" />
+  <!-- 차트 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live">
+      <a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>Iwell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+  <!-- 네비(필 버튼) -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip active">요금 분석</a>
+    </div>
+  </div>
+
+  <!-- 메인: 4×3 -->
+  <main class="grid-4x3">
+    <!-- 좌: 입력/파워플래너/요금표 (1×3) -->
+    <aside class="card card-1x3">
+      <div class="card-header">입력 & 파워플래너 연동</div>
+      <div class="card-body">
+        <div class="toolbox">
+          <div class="input-row">
+            <label>분석 월</label>
+            <input type="month" id="monthSel" />
+          </div>
+          <div class="input-row">
+            <label>계약전력</label>
+            <input type="number" id="contractKW" value="500" min="1" step="1" />
+            <span class="unit">kW</span>
+          </div>
+          <div class="input-row">
+            <label>프로파일</label>
+            <select id="profilePreset" title="로드 프로파일 프리셋">
+              <option value="balanced">균형형(기본)</option>
+              <option value="day">주간형(피크 높음)</option>
+              <option value="night">야간형(경부하 높음)</option>
+            </select>
+            <button class="btn" id="btnGen">임의 생성</button>
+          </div>
+
+          <div class="divider"></div>
+          <div class="input-row">
+            <label>파워플래너</label>
+            <input type="file" id="ppCsv" accept=".csv" />
+          </div>
+          <div class="muted small">
+            CSV 열 예시(유연): <code>timestamp,kWh</code> 또는 <code>timestamp,kW</code>.<br/>
+            업로드 시 월·시간대별로 자동 집계됩니다.
+          </div>
+          <div class="btnrow">
+            <button class="btn" id="btnUseUpload">업로드 프로파일 사용</button>
+            <button class="btn" id="btnClearUpload">업로드 해제</button>
+          </div>
+
+          <div class="divider"></div>
+          <div class="input-row">
+            <label>부가요금</label>
+            <label class="ck"><input type="checkbox" id="fuelAdj" checked /> 연료비조정(예: -4.0원/kWh)</label>
+          </div>
+          <div class="input-row">
+            <label></label>
+            <label class="ck"><input type="checkbox" id="climateFee" checked /> 기후환경요금(예: 7.0원/kWh)</label>
+          </div>
+
+          <div class="btnrow">
+            <button class="btn primary" id="btnCalc">요금 계산</button>
+            <button class="btn" id="btnCsv">CSV 다운로드</button>
+          </div>
+        </div>
+
+        <div class="tariff-box">
+          <div class="tariff-title">DEMO 요금표(원)</div>
+          <table class="table tiny">
+            <thead>
+              <tr>
+                <th>요금제</th><th>기본요금</th><th>경부하</th><th>중간부하</th><th>최대부하</th><th>고정단가</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>일반(고정)</td><td>7,000원/kW</td><td>-</td><td>-</td><td>-</td><td>125원/kWh</td></tr>
+              <tr><td>경/중/최</td><td>6,500원/kW</td><td>90</td><td>150</td><td>220</td><td>-</td></tr>
+              <tr><td>최대부하 강화</td><td>6,500원/kW</td><td>80</td><td>150</td><td>260</td><td>-</td></tr>
+            </tbody>
+          </table>
+          <div class="muted xsmall">※ 실제 한전 요금표와 다를 수 있습니다(데모).</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 우상단: 비교 차트들 (3×2) -->
+    <section class="card card-3x2">
+      <div class="card-header">요금제 비교</div>
+      <div class="card-body">
+        <div class="summary-row">
+          <span class="pill">월 총사용량 <strong id="sumKwh">-</strong> kWh</span>
+          <span class="pill">경/중/최 kWh <strong id="splitKwh">-</strong></span>
+        </div>
+        <div class="charts-vert">
+          <div id="chartCompare" class="chart-half"></div>
+          <div id="chartBreakdown" class="chart-half"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 우하단: 결과표 (3×1) -->
+    <section class="card card-3x1">
+      <div class="card-header">요금 계산 결과 (월)</div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table class="table" id="resultTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>요금제</th>
+                <th>기본요금</th>
+                <th>에너지요금</th>
+                <th>부가요금</th>
+                <th>합계</th>
+              </tr>
+            </thead>
+            <tbody><!-- JS 렌더 --></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+    (function(){
+      // ===== 시계 =====
+      const clockEl = document.getElementById('datetime');
+      const updClock = ()=> clockEl && (clockEl.textContent = new Date().toLocaleTimeString('ko-KR'));
+      updClock(); setInterval(updClock, 1000);
+
+      // ===== DEMO 요금표 (실연동 시 서버 값으로 교체) =====
+      const TARIFFS = {
+        flat: { key:'flat', name:'일반(고정)', base_per_kw:7000, energy:{ flat:125 } },
+        tou1: { key:'tou1', name:'경/중/최',   base_per_kw:6500, energy:{ off:90, mid:150, peak:220 } },
+        tou2: { key:'tou2', name:'최대부하 강화', base_per_kw:6500, energy:{ off:80, mid:150, peak:260 } },
+      };
+      const SURCHARGE = { fuel:-4.0, climate:7.0 }; // 원/kWh (데모)
+
+      // ===== 상태 =====
+      const monthSel = document.getElementById('monthSel');
+      const contractKW = document.getElementById('contractKW');
+      const profilePreset = document.getElementById('profilePreset');
+      const btnGen  = document.getElementById('btnGen');
+      const btnCalc = document.getElementById('btnCalc');
+      const btnCsv  = document.getElementById('btnCsv');
+
+      const fuelAdj   = document.getElementById('fuelAdj');
+      const climateFee= document.getElementById('climateFee');
+
+      const ppCsv = document.getElementById('ppCsv');
+      const btnUseUpload = document.getElementById('btnUseUpload');
+      const btnClearUpload = document.getElementById('btnClearUpload');
+
+      const chartCompare = echarts.init(document.getElementById('chartCompare'));
+      const chartBreakdown = echarts.init(document.getElementById('chartBreakdown'));
+
+      const $sumKwh   = document.getElementById('sumKwh');
+      const $splitKwh = document.getElementById('splitKwh');
+      const $resultTb = document.querySelector('#resultTable tbody');
+
+      // 기본 월: 이번 달
+      (function initMonth(){
+        const now = new Date();
+        const z = n=> String(n).padStart(2,'0');
+        monthSel.value = `${now.getFullYear()}-${z(now.getMonth()+1)}`;
+      })();
+
+      // DEMO 프로파일: 시간별 kWh (한달치 / 1시간 간격)
+      let hourly = [];   // [{t: Date, kwh: number}]
+      let uploaded = null; // 업로드 데이터(우선 사용)
+      genProfile(); // 초기 생성
+
+      btnGen.addEventListener('click', ()=>{ uploaded=null; genProfile(); showToast('임의 프로파일 생성 완료'); });
+      btnUseUpload.addEventListener('click', ()=>{ if(uploaded){ hourly = uploaded; showToast('업로드한 프로파일 사용 중'); draw(); } else showToast('업로드된 CSV가 없습니다.'); });
+      btnClearUpload.addEventListener('click', ()=>{ uploaded=null; showToast('업로드 해제됨'); });
+
+      ppCsv.addEventListener('change', handleCsv);
+
+      btnCalc.addEventListener('click', draw);
+      btnCsv.addEventListener('click', downloadCsv);
+
+      function genProfile(){
+        const ym = monthSel.value || '2025-07';
+        const [Y,M] = ym.split('-').map(v=> +v);
+        const d0 = new Date(Y, M-1, 1, 0,0,0,0);
+        const d1 = new Date(Y, M, 0, 23,0,0,0); // 말일 23시
+        hourly = [];
+        const preset = profilePreset.value; // balanced/day/night
+        for(let d=new Date(d0); d<=d1; d.setHours(d.getHours()+1)){
+          const hour = d.getHours();
+          const isWknd = (d.getDay()===0 || d.getDay()===6);
+          const diurnal = 0.5 + 0.6*Math.sin((hour-7)/24*2*Math.PI); // 낮>밤
+          let bias = 1.0;
+          if (preset==='day')   bias = (hour>=10 && hour<=17) ? 1.25 : 0.85;
+          if (preset==='night') bias = (hour>=22 || hour<=6)  ? 1.35 : 0.7;
+          const base = isWknd ? 0.65 : 1.0;
+          const kwh = Math.max(0.1, (diurnal * bias * base * 50) + (Math.random()-0.5)*3);
+          hourly.push({ t:new Date(d), kwh:+kwh.toFixed(3) });
+        }
+        draw();
+      }
+
+      // 간단 CSV 파서 (timestamp[,kWh]|timestamp[,kW])
+      function handleCsv(ev){
+        const file = ev.target.files?.[0]; if(!file){ showToast('CSV 파일을 선택하세요.'); return; }
+        const reader = new FileReader();
+        reader.onload = (e)=>{
+          try{
+            const text = e.target.result;
+            const lines = String(text).trim().split(/\r?\n/);
+            if (lines.length<2) throw new Error('행이 충분하지 않습니다.');
+            const head = lines[0].split(',').map(s=> s.trim().toLowerCase());
+            const tsIdx = head.findIndex(h=> h.includes('time'));
+            let valIdx = head.findIndex(h=> h.includes('kwh'));
+            let type = 'kwh';
+            if (valIdx<0){ valIdx = head.findIndex(h=> h==='kw' || h.includes('kw')); type='kw'; }
+            if (tsIdx<0 || valIdx<0) throw new Error('헤더는 timestamp, kWh(또는 kW)가 필요합니다.');
+
+            const rows = [];
+            for(let i=1;i<lines.length;i++){
+              const cols = lines[i].split(','); if (cols.length<2) continue;
+              const t = new Date(cols[tsIdx]);
+              const v = parseFloat(cols[valIdx]);
+              if (!isFinite(v) || isNaN(t.getTime())) continue;
+              rows.push({ t, v });
+            }
+            // 시간 단위 kWh로 통일(kw -> kWh로 환산: 시간 간격 추정)
+            uploaded = normalizeToHourly(rows, type);
+            showToast(`CSV ${rows.length}행 로드됨 (시간단위 ${uploaded.length}개 포인트)`);
+          }catch(err){ console.error(err); showToast('CSV 파싱 실패: ' + err.message); }
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+
+      function normalizeToHourly(rows, type){
+        // 1시간 간격으로 그룹핑(바켓) — 간격 일정치 가정
+        const bucket = new Map(); // key: ISO hour string, sum kWh
+        for (let i=0;i<rows.length;i++){
+          const {t, v} = rows[i];
+          const key = hourKey(t);
+          if (!bucket.has(key)) bucket.set(key, 0);
+          if (type==='kwh'){ bucket.set(key, bucket.get(key) + v); }
+          else { // 'kw' (평균/순시) → kWh 추정: 샘플 간격(분) 계산
+            const next = rows[i+1]?.t; const dtMin = next ? Math.max(1, (next - t)/60000) : 60;
+            bucket.set(key, bucket.get(key) + v * (dtMin/60));
+          }
+        }
+        return [...bucket.entries()].map(([key, kwh])=> ({ t:new Date(key), kwh:+kwh.toFixed(3) }));
+      }
+      function hourKey(d){
+        const z=n=> String(n).padStart(2,'0');
+        return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:00:00`;
+      }
+
+      // ===== 시간대 매핑 (DEMO) =====
+      // 평일: 경부하 23–09, 중간 09–13 & 17–23, 최대 13–17
+      // 주말/공휴일: 경부하
+      function timeBand(d){
+        const h = d.getHours(), wk = d.getDay();
+        const isWknd = (wk===0 || wk===6);
+        if (isWknd) return 'off';
+        if (h>=13 && h<17) return 'peak';
+        if ((h>=9 && h<13) || (h>=17 && h<23)) return 'mid';
+        return 'off';
+      }
+
+      function splitBands(list){
+        const out = { off:0, mid:0, peak:0, total:0 };
+        list.forEach(p=>{
+          const b = timeBand(p.t);
+          out[b] += p.kwh; out.total += p.kwh;
+        });
+        return out;
+      }
+
+      // ===== 계산/그리기 =====
+      function draw(){
+        if (!hourly.length){ showToast('프로파일이 없습니다. 임의 생성 또는 CSV 업로드를 사용하세요.'); return; }
+        const bands = splitBands(hourly);
+        const kWcontract = Math.max(1, +contractKW.value||1);
+        const useFuel = fuelAdj.checked, useClimate = climateFee.checked;
+        const sumKwh = bands.total;
+
+        // 각 요금제 계산
+        const results = [
+          calcFlat(TARIFFS.flat, kWcontract, sumKwh, useFuel, useClimate),
+          calcTOU(TARIFFS.tou1, kWcontract, bands, useFuel, useClimate),
+          calcTOU(TARIFFS.tou2, kWcontract, bands, useFuel, useClimate),
+        ];
+        // 테이블 렌더
+        $resultTb.innerHTML = '';
+        results.forEach((r,i)=> addRow(i+1, r));
+
+        // 상단 요약
+        document.getElementById('sumKwh').textContent = sumKwh.toLocaleString('ko-KR');
+        document.getElementById('splitKwh').textContent =
+          `Off ${Math.round(bands.off).toLocaleString()} / Mid ${Math.round(bands.mid).toLocaleString()} / Peak ${Math.round(bands.peak).toLocaleString()}`;
+
+        // 비교 차트(총액)
+        chartCompare.setOption({
+          animation:false,
+          tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' }, valueFormatter:(v)=> v.toLocaleString('ko-KR')+' 원' },
+          grid:{ left:56, right:24, top:24, bottom:40 },
+          xAxis:{ type:'category', data: results.map(r=> r.name) },
+          yAxis:{ type:'value', axisLabel:{ formatter:(v)=> v.toLocaleString('ko-KR') } },
+          series:[ { type:'bar', data: results.map(r=> r.total), barMaxWidth: 42 } ]
+        });
+
+        // 비용 분해(스택 막대)
+        chartBreakdown.setOption({
+          animation:false,
+          tooltip:{ trigger:'axis', axisPointer:{ type:'shadow' }, valueFormatter:(v)=> v.toLocaleString('ko-KR')+' 원' },
+          legend:{ top:0 },
+          grid:{ left:56, right:24, top:28, bottom:40 },
+          xAxis:{ type:'category', data: results.map(r=> r.name) },
+          yAxis:{ type:'value', axisLabel:{ formatter:(v)=> v.toLocaleString('ko-KR') } },
+          series:[
+            { name:'기본요금',  type:'bar', stack:'cost', data: results.map(r=> r.base)  },
+            { name:'에너지요금',type:'bar', stack:'cost', data: results.map(r=> r.energy) },
+            { name:'부가요금',  type:'bar', stack:'cost', data: results.map(r=> r.surcharge) },
+          ]
+        });
+      }
+
+      function calcFlat(tariff, kW, kwhTotal, fuelOn, climateOn){
+        const base = kW * tariff.base_per_kw;
+        const energy = kwhTotal * tariff.energy.flat;
+        const surchargePerKwh = (fuelOn? SURCHARGE.fuel : 0) + (climateOn? SURCHARGE.climate : 0);
+        const surcharge = kwhTotal * surchargePerKwh;
+        return { key:tariff.key, name:tariff.name, base:round(base), energy:round(energy), surcharge:round(surcharge), total:round(base+energy+surcharge) };
+      }
+      function calcTOU(tariff, kW, bands, fuelOn, climateOn){
+        const base = kW * tariff.base_per_kw;
+        const energy = (bands.off*tariff.energy.off) + (bands.mid*tariff.energy.mid) + (bands.peak*tariff.energy.peak);
+        const surchargePerKwh = (fuelOn? SURCHARGE.fuel : 0) + (climateOn? SURCHARGE.climate : 0);
+        const surcharge = bands.total * surchargePerKwh;
+        return { key:tariff.key, name:tariff.name, base:round(base), energy:round(energy), surcharge:round(surcharge), total:round(base+energy+surcharge) };
+      }
+      function round(n){ return Math.round(n); }
+
+      function addRow(i, r){
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i}</td>
+          <td>${r.name}</td>
+          <td>${r.base.toLocaleString('ko-KR')}</td>
+          <td>${r.energy.toLocaleString('ko-KR')}</td>
+          <td>${r.surcharge.toLocaleString('ko-KR')}</td>
+          <td><b>${r.total.toLocaleString('ko-KR')}</b></td>
+        `;
+        $resultTb.appendChild(tr);
+      }
+
+      function downloadCsv(){
+        const rows = [...$resultTb.querySelectorAll('tr')].map(tr=> [...tr.children].map(td=> td.textContent));
+        if (!rows.length){ showToast('다운로드할 데이터가 없습니다. 먼저 계산하세요.'); return; }
+        const header = ['index','tariff','base','energy','surcharge','total'];
+        const lines = [header.join(',')];
+        rows.forEach(r=> lines.push(r.join(',')));
+        const blob=new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+        a.download='tariff-analysis.csv'; a.click(); URL.revokeObjectURL(a.href);
+      }
+
+      // 레이아웃 높이 맞춤 (뷰포트 꽉 채우기)
+      function fitMainHeight(){
+        const main = document.querySelector('main.grid-4x3');
+        const header = document.querySelector('header');
+        const nav = document.querySelector('.sub-banner.nav-banner');
+        if (!main) return;
+        const h = window.innerHeight - (header?header.offsetHeight:0) - (nav?nav.offsetHeight:0);
+        main.style.height = h + 'px';
+      }
+      window.addEventListener('load', fitMainHeight);
+      window.addEventListener('resize', fitMainHeight);
+
+      function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1200); }
+
+      // 초기 그리기
+      draw();
+    })();
+  </script>
+  
+   <script src="script.js"></script>
+</body>
+</html>

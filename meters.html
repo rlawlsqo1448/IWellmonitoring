@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>계측기 대시보드 | Iwell Monitoring</title>
+  <!-- 공통 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 이 페이지 전용 -->
+  <link rel="stylesheet" href="meters.css" />
+</head>
+<body>
+  <!-- 헤더 -->
+  <header>
+    <div class="header-left">
+      <img src="https://img.icons8.com/material-rounded/24/000000/menu--v1.png" class="icon" alt="Menu">
+      <img src="assets/icons/limeLogo.png" class="logo-img" alt="lime">
+      Iwell 모니터링 시스템
+    </div>
+    <div class="header-right">
+      <span id="datetime">--:--:--</span>
+      <img src="assets/images/live.png" class="icon live-icon" alt="live"><a href="settings.html">
+  <img src="https://img.icons8.com/material-outlined/24/000000/settings--v1.png" 
+       class="icon" alt="settings">
+</a>
+    </div>
+  </header>
+<!-- Drawer Menu (공통) -->
+<div class="drawer-overlay" id="drawerOv"></div>
+<nav class="drawer" id="drawer" aria-label="페이지 메뉴">
+  <div class="drawer-header">
+    <div class="brand">
+      <img src="assets/icons/limeLogo.png" alt="limeLogo" class="logo-img" style="height:24px">
+      <span>Iwell 메뉴</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="메뉴 닫기">✕</button>
+  </div>
+    <div class="menu-list" id="menuList">
+      <a class="menu-link" href="index.html"              data-page="index.html">요약 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="equipment.html"          data-page="equipment.html">설비 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="monitoring.html"         data-page="monitoring.html">모니터링 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="meters.html"             data-page="meters.html">계측기 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="locations.html"          data-page="locations.html">위치 대시보드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-period.html"    data-page="analysis-period.html">기간별 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-compare.html"   data-page="analysis-compare.html">비교 분석 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="analysis-grid.html"      data-page="analysis-grid.html">데이터 그리드 <span class="badge-current" hidden>현재</span></a>
+      <a class="menu-link" href="tariff.html"             data-page="tariff.html">요금 분석 <span class="badge-current" hidden>현재</span></a>
+    </div>
+</nav>
+
+  <!-- sub-banner 네비 (알람 메뉴 없음) -->
+  <div class="sub-banner nav-banner">
+    <div class="info nav-info">
+      <a href="index.html" class="nav-chip">요약 대시보드</a>
+      <a href="equipment.html" class="nav-chip">설비 대시보드</a>
+      <a href="monitoring.html" class="nav-chip">모니터링 대시보드</a>
+      <a href="meters.html" class="nav-chip active">계측기 대시보드</a>
+      <a href="locations.html" class="nav-chip">위치 대시보드</a>
+      <a href="analysis-period.html" class="nav-chip">기간별 분석</a>
+      <a href="analysis-compare.html" class="nav-chip">비교 분석</a>
+      <a href="analysis-grid.html" class="nav-chip">데이터 그리드</a>
+      <a href="tariff.html" class="nav-chip">요금 분석</a>
+    </div>
+  </div>
+
+  <!-- 메인: 4×3 그리드 -->
+  <main class="grid-4x3">
+    <!-- 좌: 계측기 리스트 (1×3) -->
+    <aside class="card card-1x3">
+      <div class="card-header">계측기 리스트 / 통신 상태</div>
+      <div class="card-body meter-list-body">
+        <div class="meter-toolbar">
+          <input type="text" id="q" placeholder="이름/위치/유형 검색" />
+          <select id="typeFilter">
+            <option value="">전체 유형</option>
+            <option value="전력계">전력계</option>
+            <option value="온습도">온습도</option>
+            <option value="멀티">멀티</option>
+          </select>
+          <select id="commFilter">
+            <option value="">통신 전체</option>
+            <option value="정상">정상</option>
+            <option value="이상">이상</option>
+          </select>
+        </div>
+        <ul id="meterList" class="meter-list"><!-- JS 렌더 --></ul>
+      </div>
+    </aside>
+
+    <!-- 우상단: 선택 계측기 요약 (3×1) -->
+    <section class="card card-3x1">
+      <div class="card-header">선택 계측기</div>
+      <div class="card-body">
+        <div class="sel-grid">
+          <div class="sel-section">
+            <div class="sel-title">계측기</div>
+            <div class="kpi xl" id="mName">-</div>
+            <div class="muted" id="mPath">-</div>
+          </div>
+          <div class="sel-section">
+            <div class="sel-title">상태</div>
+            <div class="row">
+              <span class="badge" id="mType">-</span>
+              <!-- 요청: 통신 정상/이상 초록/빨강 배지로 강조 -->
+              <span id="mCommBadge" class="badge">통신 -</span>
+            </div>
+            <div class="kv">
+              <span class="kv-label">업데이트</span>
+              <span class="kv-value" id="mUpdated">-</span>
+            </div>
+          </div>
+          <div class="sel-section">
+            <div class="sel-title">지표 (실시간)</div>
+            <div class="row wrap">
+              <div class="kpi lg"><span id="mKW">-</span> kW</div>
+              <div class="kpi lg"><span id="mV">-</span> V</div>
+              <div class="kpi lg"><span id="mA">-</span> A</div>
+              <div class="kpi lg"><span id="mPF">-</span> PF</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 중단: 실시간 패턴 (3×1) -->
+    <section class="card card-3x1">
+      <div class="card-header">
+        실시간 패턴
+        <span class="right-controls">
+          <label for="channelSel" class="muted">채널</label>
+          <select id="channelSel">
+            <option value="kw">활성전력(kW)</option>
+            <option value="v">전압(V)</option>
+            <option value="a">전류(A)</option>
+            <option value="hz">주파수(Hz)</option>
+            <option value="pf">역률(PF)</option>
+          </select>
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="chart-mini" id="chartLive"></div>
+        <div class="muted">2초마다 갱신 · 드래그/휠로 확대</div>
+      </div>
+    </section>
+
+    <!-- 하단: 계측 상세 & 메타 (2×1) -->
+    <section class="card card-2x1">
+      <div class="card-header">계측 상세 & 메타</div>
+      <div class="card-body metrics-body">
+        <table class="table">
+          <tbody>
+            <tr><th>전압 (V)</th><td id="dV">-</td><th>전류 (A)</th><td id="dA">-</td></tr>
+            <tr><th>활성전력 (kW)</th><td id="dKW">-</td><th>주파수 (Hz)</th><td id="dHz">-</td></tr>
+            <tr><th>역률 (PF)</th><td id="dPF">-</td><th>금일 사용량 (kWh)</th><td id="dKwhToday">-</td></tr>
+            <tr><th>FW</th><td id="dFw">-</td><th>IP</th><td id="dIp">-</td></tr>
+          </tbody>
+        </table>
+        <!-- 요청: 페이지 이동 링크 제거 -->
+      </div>
+    </section>
+
+    <!-- 하단: 통신 상태 요약 (1×1) -->
+    <section class="card card-1x1">
+      <div class="card-header">통신 상태 요약</div>
+      <div class="card-body">
+        <!-- 요청: 원형 그래프 오른쪽에 요약 배치 -->
+        <div class="comm-wrap">
+          <div class="comm-chart">
+            <div id="chartComm" class="chart-mini"></div>
+          </div>
+          <div class="comm-stats">
+            <div class="stat-line">
+              <span class="label">전체</span>
+              <span class="value" id="sumAll">-</span>
+            </div>
+            <div class="stat-line ok">
+              <span class="label">정상</span>
+              <span class="value" id="sumOk">-</span>
+            </div>
+            <div class="stat-line ng">
+              <span class="label">이상</span>
+              <span class="value" id="sumNg">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">-</div>
+
+  <!-- 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <!-- 페이지 스크립트 -->
+  <script>
+    (function(){
+      // ===== 시계 =====
+      const clockEl = document.getElementById('datetime');
+      function updateClock(){ if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('ko-KR'); }
+      updateClock(); setInterval(updateClock, 1000);
+
+      // ===== 데모용 계측기 데이터 =====
+      const METERS = [
+        { id:'M-A-001', name:'메인전력계#A1', type:'전력계', path:['공장A','라인1','MCC'], comm:'정상',
+          v:380, a:12.4, kw:7.8, hz:60.0, pf:0.93, kwhToday:560, fw:'1.2.3', ip:'10.0.1.101' },
+        { id:'M-A-002', name:'공조전력계#A2', type:'전력계', path:['공장A','라인2','AHU'], comm:'정상',
+          v:380, a:7.2, kw:4.9, hz:60.0, pf:0.95, kwhToday:310, fw:'1.2.3', ip:'10.0.1.102' },
+        { id:'M-B-101', name:'로봇전력계#B1', type:'전력계', path:['공장B','조립','CELL1'], comm:'정상',
+          v:220, a:14.1, kw:3.1, hz:60.0, pf:0.90, kwhToday:430, fw:'1.1.9', ip:'10.0.2.201' },
+        { id:'M-B-201', name:'라인전력계#B2', type:'전력계', path:['공장B','도장','부스'], comm:'이상',
+          v:380, a:0.0,  kw:0.0, hz:0.0,  pf:0.00, kwhToday:80,  fw:'1.1.9', ip:'10.0.2.202' },
+        { id:'M-C-301', name:'건조로계측#C1', type:'멀티',  path:['공장C','열처리','건조'], comm:'정상',
+          v:380, a:11.6, kw:6.9, hz:60.0, pf:0.92, kwhToday:610, fw:'2.0.0', ip:'10.0.3.11' },
+        { id:'M-C-401', name:'집진계측#C2',   type:'멀티',  path:['공장C','열처리','집진'], comm:'정상',
+          v:380, a:4.1,  kw:2.2, hz:60.0, pf:0.94, kwhToday:180, fw:'2.0.0', ip:'10.0.3.12' },
+        { id:'M-T-011', name:'레인지온도#T1', type:'온습도', path:['공장A','라인1','성형'], comm:'정상',
+          v:0,   a:0,    kw:0,   hz:0,    pf:0.00, kwhToday:0,   fw:'0.9.0', ip:'10.0.4.10' },
+      ];
+      const fmt = (n)=> (typeof n==='number') ? n.toLocaleString('ko-KR') : n;
+
+      // ===== 리스트 렌더 =====
+      const listEl = document.getElementById('meterList');
+      const qEl = document.getElementById('q');
+      const typeEl = document.getElementById('typeFilter');
+      const commEl = document.getElementById('commFilter');
+
+      function renderList(){
+        const q = qEl.value.trim();
+        const t = typeEl.value;
+        const c = commEl.value;
+        listEl.innerHTML = '';
+        METERS
+          .filter(m => (t ? m.type===t : true))
+          .filter(m => (c ? m.comm===c : true))
+          .filter(m => q ? (m.name.includes(q)||m.id.includes(q)||m.path.join('/').includes(q)) : true)
+          .forEach(m => listEl.appendChild(itemLi(m)));
+        updateCommSummary();
+      }
+      function itemLi(m){
+        const li = document.createElement('li'); li.className = 'meter-row';
+        li.innerHTML = `
+          <div class="mr-name">
+            <span class="dot ${m.comm==='정상'?'ok':'ng'}"></span>
+            <span class="title">${m.name}</span>
+            <span class="sub">(${m.id})</span>
+          </div>
+          <div class="mr-path">${m.path.join(' / ')}</div>
+          <div class="mr-type">${m.type}</div>
+          <div class="mr-comm"><span class="badge ${m.comm==='정상'?'status-on':'status-off'}">${m.comm}</span></div>
+          <div class="mr-link"><a class="link" href="meter-detail.html?id=${encodeURIComponent(m.id)}" target="_blank">상세</a></div>
+        `;
+        li.addEventListener('click', (e)=>{ if(e.target.tagName==='A') return; selectMeter(m.id); highlight(li); });
+        return li;
+      }
+      function highlight(node){ listEl.querySelectorAll('.meter-row').forEach(n=>n.classList.remove('selected')); node.classList.add('selected'); }
+      qEl.addEventListener('input', renderList);
+      typeEl.addEventListener('change', renderList);
+      commEl.addEventListener('change', renderList);
+
+      // ===== 우측 바인딩 =====
+      const $mName=document.getElementById('mName');
+      const $mPath=document.getElementById('mPath');
+      const $mType=document.getElementById('mType');
+      const $mCommBadge=document.getElementById('mCommBadge'); // 변경: 배지 요소
+      const $mUpdated=document.getElementById('mUpdated');
+      const $mKW=document.getElementById('mKW');
+      const $mV=document.getElementById('mV');
+      const $mA=document.getElementById('mA');
+      const $mPF=document.getElementById('mPF');
+
+      const $dV=document.getElementById('dV');
+      const $dA=document.getElementById('dA');
+      const $dKW=document.getElementById('dKW');
+      const $dHz=document.getElementById('dHz');
+      const $dPF=document.getElementById('dPF');
+      const $dKwhToday=document.getElementById('dKwhToday');
+      const $dFw=document.getElementById('dFw');
+      const $dIp=document.getElementById('dIp');
+
+      // ===== 차트 =====
+      const chartLive = echarts.init(document.getElementById('chartLive'));
+      const chartComm = echarts.init(document.getElementById('chartComm'));
+      const channelSel = document.getElementById('channelSel');
+      channelSel.addEventListener('change', ()=> resetLiveSeries(getSelected()));
+
+      function lineOption(data, unitFmt){
+        return {
+          animation:false,
+          tooltip:{ trigger:'axis', valueFormatter: unitFmt },
+          grid:{ left:48, right:12, top:8, bottom:48 },
+          xAxis:{
+            type:'time',
+            splitNumber:6,
+            axisLabel:{ hideOverlap:true, formatter:(v)=> new Date(v).toLocaleTimeString('ko-KR').replace(/:\d{2}$/,'') }
+          },
+          yAxis:{ type:'value', axisLabel:{ formatter:(v)=> unitFmt(v) } },
+          dataZoom:[ { type:'slider', height:14, bottom:8, start:60, end:100 }, { type:'inside' } ],
+          series:[ { type:'line', data, showSymbol:false, smooth:0.25, lineStyle:{ width:2 } }]
+        };
+      }
+      function donutOption(ok, ng){
+        return {
+          tooltip:{ trigger:'item' },
+          legend:{ show:false },
+          series:[{
+            type:'pie', radius:['55%','80%'], avoidLabelOverlap:true,
+            label:{ show:false }, labelLine:{ show:false },
+            data:[ {name:'정상', value:ok}, {name:'이상', value:ng} ]
+          }]
+        };
+      }
+
+      // ===== 선택/갱신 =====
+      let selectedId = null;
+      let liveSeries = [];
+
+      function selectMeter(id){
+        const m = METERS.find(x=>x.id===id); if(!m) return; selectedId=id;
+
+        $mName.textContent = m.name;
+        $mPath.textContent = m.path.join(' / ');
+        $mType.textContent = m.type;
+
+        // 요청: “통신 정상/통신 이상” 문구 + 색상 배지
+        $mCommBadge.textContent = (m.comm==='정상' ? '통신 정상' : '통신 이상');
+        $mCommBadge.className = 'badge ' + (m.comm==='정상' ? 'status-on' : 'status-off');
+
+        $mUpdated.textContent = new Date().toLocaleTimeString('ko-KR');
+
+        $mKW.textContent = fmt(m.kw);
+        $mV.textContent  = fmt(m.v);
+        $mA.textContent  = fmt(m.a);
+        $mPF.textContent = m.pf.toFixed(2);
+
+        $dV.textContent  = fmt(m.v);
+        $dA.textContent  = fmt(m.a);
+        $dKW.textContent = fmt(m.kw);
+        $dHz.textContent = m.hz.toFixed(2);
+        $dPF.textContent = m.pf.toFixed(2);
+        $dKwhToday.textContent = fmt(m.kwhToday);
+        $dFw.textContent = m.fw;
+        $dIp.textContent = m.ip;
+
+        resetLiveSeries(m);
+      }
+      function resetLiveSeries(m){
+        const now = Date.now();
+        const ch = channelSel.value;
+        const [base, unitFmt] = channelUnit(m, ch);
+        liveSeries = [];
+        for(let i=299;i>=0;i--){
+          const t = now - i*2000;
+          const val = jitter(base, ch, i);
+          liveSeries.push([t, val]);
+        }
+        chartLive.setOption(lineOption(liveSeries, unitFmt));
+      }
+      function channelUnit(m, ch){
+        switch(ch){
+          case 'kw': return [m.kw, (v)=> fmt(v)+' kW'];
+          case 'v' : return [m.v , (v)=> fmt(v)+' V' ];
+          case 'a' : return [m.a , (v)=> fmt(v)+' A' ];
+          case 'hz': return [m.hz, (v)=> v.toFixed(1)+' Hz' ];
+          case 'pf': return [m.pf, (v)=> v.toFixed(2) ];
+        }
+      }
+      function jitter(base, ch, i){
+        const s = Math.sin(i/10);
+        const r = (Math.random()-0.5);
+        if(ch==='kw') return Math.max(0, +(base + s*0.6 + r*0.8).toFixed(2));
+        if(ch==='v')  return Math.max(0, +(base + s*1.5 + r*2.0).toFixed(1));
+        if(ch==='a')  return Math.max(0, +(base + s*0.6 + r*0.8).toFixed(2));
+        if(ch==='hz') return +(base + s*0.05 + r*0.05).toFixed(2);
+        if(ch==='pf') return Math.min(1, Math.max(0, +(base + s*0.002 + r*0.003).toFixed(3)));
+        return base;
+      }
+      function getSelected(){ return METERS.find(m=>m.id===selectedId); }
+
+      // ===== 통신 상태 요약 =====
+      function updateCommSummary(){
+        const ok = METERS.filter(m=>m.comm==='정상').length;
+        const ng = METERS.length - ok;
+        chartComm.setOption(donutOption(ok, ng));
+        document.getElementById('sumAll').textContent = METERS.length;
+        document.getElementById('sumOk').textContent = ok;
+        document.getElementById('sumNg').textContent = ng;
+      }
+
+      // ===== 실시간 갱신(2초) — 데모 =====
+      setInterval(()=>{
+        // 리스트의 이상 항목은 가끔 정상/이상 토글(데모)
+        METERS.forEach(m=>{
+          if (m.comm==='이상' && Math.random()<0.05){ m.comm='정상'; }
+          else if (m.comm==='정상' && Math.random()<0.02){ m.comm='이상'; }
+        });
+        renderList();
+
+        const sel = getSelected(); if(!sel) return;
+        if (sel.comm==='정상'){
+          // 값 드리프트
+          sel.kw = Math.max(0, +(sel.kw + (Math.random()-0.5)*0.6).toFixed(2));
+          sel.v  = Math.max(0, +(sel.v  + (Math.random()-0.5)*1.5).toFixed(1));
+          sel.a  = Math.max(0, +(sel.a  + (Math.random()-0.5)*0.6).toFixed(2));
+          sel.hz = +(60 + (Math.random()-0.5)*0.08).toFixed(2);
+          sel.pf = Math.min(1, Math.max(0, +(sel.pf + (Math.random()-0.5)*0.004).toFixed(3)));
+          sel.kwhToday += Math.max(0, sel.kw/1800);
+        }
+
+        // KPI 업데이트
+        $mKW.textContent = fmt(sel.kw);
+        $mV.textContent  = fmt(sel.v);
+        $mA.textContent  = fmt(sel.a);
+        $mPF.textContent = sel.pf.toFixed(2);
+        $mUpdated.textContent = new Date().toLocaleTimeString('ko-KR');
+
+        // 통신 배지 상태 갱신
+        $mCommBadge.textContent = (sel.comm==='정상' ? '통신 정상' : '통신 이상');
+        $mCommBadge.className = 'badge ' + (sel.comm==='정상' ? 'status-on' : 'status-off');
+
+        // 상세 메타 갱신
+        $dV.textContent  = fmt(sel.v);
+        $dA.textContent  = fmt(sel.a);
+        $dKW.textContent = fmt(sel.kw);
+        $dHz.textContent = sel.hz.toFixed(2);
+        $dPF.textContent = sel.pf.toFixed(2);
+        $dKwhToday.textContent = fmt(Math.round(sel.kwhToday));
+
+        // 라이브 차트 포인트 추가
+        const ch = channelSel.value;
+        const [, unitFmt] = channelUnit(sel, ch);
+        const t = Date.now();
+        let val = 0;
+        if(ch==='kw') val = sel.kw;
+        if(ch==='v')  val = sel.v;
+        if(ch==='a')  val = sel.a;
+        if(ch==='hz') val = sel.hz;
+        if(ch==='pf') val = sel.pf;
+        liveSeries.push([t, val]); if (liveSeries.length>600) liveSeries.splice(0, liveSeries.length-600);
+        chartLive.setOption({ series:[{ data: liveSeries }], yAxis:{ axisLabel:{ formatter: unitFmt } } });
+      }, 2000);
+
+      // ===== 초기 렌더 =====
+      renderList();
+      selectMeter(METERS[0].id);
+    })();
+  </script>
+  
+   <script src="script.js"></script>
+</body>
+</html>
